@@ -3,7 +3,6 @@ import telebot
 from telebot.types import BotCommand
 import csv
 import emoji
-from flaskapp import run
 
 my_secret = os.environ['API_KEY']
 bot = telebot.TeleBot(my_secret)
@@ -341,6 +340,5 @@ def about(message):
   messageReply += data[1][0]
   bot.send_message(chat_id=message.chat.id, text=emoji.emojize(messageReply))
 
-run()
 
 bot.infinity_polling()
