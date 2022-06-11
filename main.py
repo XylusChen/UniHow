@@ -10,7 +10,7 @@ import emoji
 # TOKEN = os.getenv("TOKEN")
 # bot = telebot.TeleBot(TOKEN)
 
-my_secret = os.environ['MYPRECIOUS']
+my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
 #read csv file
