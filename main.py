@@ -3,8 +3,11 @@ import telebot
 from telebot.types import BotCommand
 import csv
 import emoji
+from dotenv import load_dotenv
 
-TOKEN = "5111801625:AAGRQZFKHNPFHgiReLymmuhvNmQlKZn37_o"
+load_dotenv()  # take environment variables from .env.
+
+TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 #read csv file
