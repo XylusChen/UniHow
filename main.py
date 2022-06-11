@@ -3,12 +3,15 @@ import telebot
 from telebot.types import BotCommand
 import csv
 import emoji
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-load_dotenv()  # take environment variables from .env.
+# load_dotenv()  # take environment variables from .env.
 
-TOKEN = os.getenv("TOKEN")
-bot = telebot.TeleBot(TOKEN)
+# TOKEN = os.getenv("TOKEN")
+# bot = telebot.TeleBot(TOKEN)
+
+my_secret = os.environ['SECRET_TOKEN']
+bot = telebot.TeleBot(my_secret)
 
 #read csv file
 def read_csv(csvfilename):
