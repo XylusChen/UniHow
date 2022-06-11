@@ -4,8 +4,11 @@ from telebot.types import BotCommand
 import csv
 import emoji
 
+
+
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
+
 
 #read csv file
 def read_csv(csvfilename):
