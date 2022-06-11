@@ -4,11 +4,7 @@ from telebot.types import BotCommand
 import csv
 import emoji
 
-TOKEN = None
-
-with open("secret.txt") as f:
-    TOKEN = f.read().strip()
-
+TOKEN = "5111801625:AAGRQZFKHNPFHgiReLymmuhvNmQlKZn37_o"
 bot = telebot.TeleBot(TOKEN)
 
 #read csv file
