@@ -23,7 +23,7 @@ def read_csv(csvfilename):
 #Set the commands in the main menu
 bot.set_my_commands([
   BotCommand('start', 'Begin your UniHow journey!'),
-  BotCommand('gipanel', 'General Information Panel'),
+  BotCommand('gipanel', 'Click here to learn all about NUS, including courses, programmes, and accommodation options!'),
   BotCommand('askquestion', 'Send us your questions!'),
   BotCommand('ansquestion', 'Assist peers with their queries!'),
   BotCommand('livechat', 'Join our Chat Room!'),
