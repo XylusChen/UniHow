@@ -7,9 +7,13 @@ import pymongo
 from pymongo import MongoClient
 
 
-cluster = MongoClient("mongodb+srv://unihow:unihowdb@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
-db = cluster["telegram"]
 
+cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
+db = cluster["telegram"]
+collection = db["unihow"] 
+#post = {"_id": 3, "name": "dick", "score": 5}
+#collection.insert_one(post)
+ 
 
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
