@@ -4,7 +4,11 @@ from telebot.types import BotCommand
 import csv
 import emoji
 import pymongo
+from pymongo import MongoClient
 
+
+cluster = MongoClient("mongodb+srv://unihow:unihowdb@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
+db = cluster["telegram"]
 
 
 my_secret = os.environ["MYPRECIOUS"]
