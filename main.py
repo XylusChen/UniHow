@@ -19,7 +19,7 @@ bot = telebot.TeleBot(my_secret)
 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral"]
 
-chat_cat_dic = {}
+category_dic = {}
 
 #read csv file
 def read_csv(csvfilename):
@@ -97,8 +97,8 @@ def filterCategory(message):
       break
   if valid:
     reply = f"You have selected *{message.text}*\. Please type your question after this message\."
-    chat = message.chat.id
-    chat_cat_dic[chat] = Question(message.text)
+    user = message.from_user.id
+    category_dic[user] = Question(message.text)
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, acceptQuestion)
   else:
@@ -125,13 +125,13 @@ def acceptQuestion(message):
         return
 
   ## if question is valid, proceed as follows
-  chat = message.chat.id
-  qns = chat_cat_dic[chat]
+  user = message.from_user.id
+  qns = category_dic[user]
   question = message.text
   qns.update_question(question)
   post = {"status": qns.get_status(), "category": qns.get_category(), "question": qns.get_question()}
   collection.insert_one(post)
-  bot.send_message(chat_id = chat, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
+  bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
 
   
 #Defining the Answer Question command 
