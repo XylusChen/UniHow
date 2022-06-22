@@ -8,6 +8,8 @@ from pymongo import MongoClient
 from qna import Question
 import pickle
 
+
+#MongoDB databse for QnA feature 
 cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
 db = cluster["telegram"]
 collection = db["unihow"] 
@@ -15,10 +17,10 @@ collection = db["unihow"]
 my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
-# List of all Valid categories for QnA Feature
+# List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
 
-# Stores user-category data. User unique ID (key), Category chosen (value)
+# Python dictionary to store user-category data pair. User unique ID (key), Category chosen (value)
 category_dic = {}
 
 #Read csv file
@@ -53,7 +55,7 @@ def sendCategoryList(message):
 
 # Check if user wishes to terminate QnA Session
 def userEnd(message):
-  endList = ["end", 'end', "END", "'END'"]
+  endList = ["end", 'end', "END", "'END'", "/end", "/END"]
   if message.text in endList:
     return True
   else:
@@ -247,8 +249,8 @@ def start(message):
 @bot.message_handler(commands=['gipanel'])
 def gipanel(message):
   """Shows the user the menu for gi panel """
-  messageReply = emoji.emojize(f"This is the menu for our general information panel. Click on the links below to find out various information about NUS Undergraduate Programmes, Special Undergraduate Programmes, as well as accomodation options available in NUS.\n\n /ugprogrammes Undergraduate Programmes :school: \n\n /spprogrammes Special Undergraduate Programmes :school::star: \n\n /housing Accomodation on Campus :house:")
-  bot.reply_to(message, messageReply)
+  messageReply = emoji.emojize(f"This is the menu for our general information panel. *Click on the links* below to find out various information about NUS Undergraduate Programmes, Special Undergraduate Programmes, as well as accomodation options available in NUS.\n\n /ugprogrammes Undergraduate Programmes :school: \n\n /spprogrammes Special Undergraduate Programmes :school::star: \n\n /housing Accomodation on Campus :house:")
+  bot.reply_to(message, messageReply, parse_mode= 'Markdown')
 
   
 #Defining the livechat command 
@@ -273,8 +275,8 @@ def about(message):
 @bot.message_handler(commands=['ugprogrammes'])
 def ugprogrammes(message):
   """Undergraduate programmes/Faculties"""
-  messageReply = emoji.emojize("Find out all about NUS Undergraduate Programmes here! Discover more about NUS Faculties and the degree courses they offer! \n\n/chs College of Humanities and Sciences :closed_book::microscope:\n\n/biz NUS Business School :briefcase:\n\n/computing School of Computing :laptop:\n\n/medicine Yong Loo Lin School of Medicine 	:stethoscope:\n\n/dentistry Faculty of Dentistry :tooth:\n\n/cde College of Design and Engineering :artist_palette::wrench:\n\n/law Faculty of Law :classical_building:\n\n/nursing Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine :syringe:\n\n/pharmacy Department of Pharmacy :pill:\n\n/music Yong Siew Toh Conservatory of Music :musical_note:")
-  bot.reply_to(message, messageReply)
+  messageReply = emoji.emojize(f"Find out all about NUS Undergraduate Programmes here! *Click on the links* to discover more about NUS Faculties and the degree courses they offer! \n\n/chs College of Humanities and Sciences :closed_book::microscope:\n\n/biz NUS Business School :briefcase:\n\n/computing School of Computing :laptop:\n\n/medicine Yong Loo Lin School of Medicine 	:stethoscope:\n\n/dentistry Faculty of Dentistry :tooth:\n\n/cde College of Design and Engineering :artist_palette::wrench:\n\n/law Faculty of Law :classical_building:\n\n/nursing Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine :syringe:\n\n/pharmacy Department of Pharmacy :pill:\n\n/music Yong Siew Toh Conservatory of Music :musical_note:")
+  bot.reply_to(message, messageReply, parse_mode= 'Markdown')
 
 #Abstraction for the bot to reply based on "final" command 
 def generateReply(input, filename, message):
@@ -353,8 +355,8 @@ def music(message):
 @bot.message_handler(commands=['spprogrammes'])
 def spprogrammes(message):
   """Special Undergraduate Programmes """
-  messageReply = emoji.emojize(f"Click on the links below to find out various information about Special Undergraduate Programmes in NUS.\n\n/ddp Double Degree Programmes :rolled-up_newspaper::rolled-up_newspaper:\n\n/dmp Double Major Programmes :scroll::scroll:\n\n/cdp Concurrent Degree Programmes :rolled-up_newspaper::infinity::rolled-up_newspaper:\n\n/sp Special Programmes :star::rolled-up_newspaper:\n\n/jd Joint Degree Programmes :school::rolled-up_newspaper::school:\n\n/ptp Part Time Programmes :rolled-up_newspaper::eight-thirty:\n\n/mp Minor Programmes :scroll:")
-  bot.reply_to(message, messageReply)
+  messageReply = emoji.emojize(f"*Click on the links* below to find out various information about Special Undergraduate Programmes in NUS.\n\n/ddp Double Degree Programmes :rolled-up_newspaper::rolled-up_newspaper:\n\n/dmp Double Major Programmes :scroll::scroll:\n\n/cdp Concurrent Degree Programmes :rolled-up_newspaper::infinity::rolled-up_newspaper:\n\n/sp Special Programmes :star::rolled-up_newspaper:\n\n/jd Joint Degree Programmes :school::rolled-up_newspaper::school:\n\n/ptp Part Time Programmes :rolled-up_newspaper::eight-thirty:\n\n/mp Minor Programmes :scroll:")
+  bot.reply_to(message, messageReply, parse_mode= 'Markdown')
 
 #Defining all the individual commands inside Special Programmes 
 
@@ -376,8 +378,8 @@ def cdp(message):
 @bot.message_handler(commands=['sp'])
 def sp(message):
   """Special Programmes """
-  messageReply = emoji.emojize("Welcome to NUS Special Programmes! Here you shall find unique and intriguing academic initiatives that are capable of making your University experience so much more enriching! Click on the various links below to find out more! \n\n/sep Student Exchange Programme :currency_exchange:\n\n/noc NUS Overseas Colleges :airplane:\n\n/usp University Scholars Programme :man_student:\n\n/utcp University Town College Programme :school:\n\n/rvrc Ridge View Residential College :houses:")
-  bot.reply_to(message, messageReply)
+  messageReply = emoji.emojize("Welcome to NUS Special Programmes! Here you can find out about unique and intriguing academic initiatives that are capable of making your University experience so much more enriching! *Click on the various links* below to find out more! \n\n/sep Student Exchange Programme :currency_exchange:\n\n/noc NUS Overseas Colleges :airplane:\n\n/usp University Scholars Programme :man_student:\n\n/utcp University Town College Programme :school:\n\n/rvrc Ridge View Residential College :houses:")
+  bot.reply_to(message, messageReply, parse_mode= 'Markdown')
 
 @bot.message_handler(commands=['sep'])
 def sep(message):
@@ -424,14 +426,14 @@ def mp(message):
 def housing(message):
   """Accomodation on Campus"""
   messageReply = emoji.emojize(
-        f"Looking for an opportunity to stay in campus? Craving for the 'full' uni-experience? You've come to the right place! Click on the links below to find out more about on-campus living and accomodation options in NUS.\n\n/halls Halls :house_with_garden:\n\n/houses Houses :house:\n\n/rc Residential Colleges :houses:\n\n/residences Residences :office_building:"
+        f"Looking for an opportunity to stay in campus? Craving for the 'full' uni-experience? You've come to the right place! *Click on the links* below to find out more about on-campus living and accomodation options in NUS.\n\n/halls Halls :house_with_garden:\n\n/houses Houses :house:\n\n/rc Residential Colleges :houses:\n\n/residences Residences :office_building:"
     )
-  bot.reply_to(message, messageReply)
+  bot.reply_to(message, messageReply, parse_mode= 'Markdown')
   text = 'Click [here](https://nus.edu.sg/osa/student-services/hostel-admission/undergraduate/application-guide) for more administrative information on NUS Hostel Admissions, such as Eligibility, Application Periods and Hostel Fees etc\!'
   bot.send_message(message.chat.id, text, parse_mode='MarkdownV2')
 
 #Defining the individual commands for accommodation (halls)
-@bot.message_handler(commands=['halls'])
+@bot.message_handler(commands=['halls']) 
 def halls(message):
   """Hall"""
   messageReply = emoji.emojize(
