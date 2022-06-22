@@ -6,22 +6,22 @@ import emoji
 import pymongo
 from pymongo import MongoClient
 from qna import Question
+import pickle
 
 cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
 db = cluster["telegram"]
 collection = db["unihow"] 
-#post = {"_id": 3, "name": "dick", "score": 5}
-#collection.insert_one(post)
- 
 
 my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
-validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral"]
+# List of all Valid categories for QnA Feature
+validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
 
+# Stores user-category data. User unique ID (key), Category chosen (value)
 category_dic = {}
 
-#read csv file
+#Read csv file
 def read_csv(csvfilename):
   """
   Reads a csv file and returns a list of lists
@@ -41,6 +41,200 @@ bot.set_my_commands([
   BotCommand('about', 'Find out more about UniHow!')
 ])
 
+# Sends out list of Valid Categories
+def sendCategoryList(message):
+  ug = emoji.emojize("*Categories for Undergraduate Programmes* \n\n 'chs' College of Humanities and Sciences :closed_book:\n\n 'biz' NUS Business School :briefcase:\n\n 'computing' School of Computing :laptop:\n\n 'medicine' Yong Loo Lin School of Medicine :stethoscope:\n\n 'dentistry' Faculty of Dentistry :tooth:\n\n 'cde' College of Design and Engineering :artist_palette::wrench:\n\n 'law' Faculty of Law :classical_building:\n\n 'nursing' Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine :syringe:\n\n 'pharmacy' Department of Pharmacy :pill:\n\n 'music' Yong Siew Toh Conservatory of Music :musical_note:\n\n 'UGgeneral' General Enquires for Undegraduate Programmes :sun:") 
+  bot.send_message(chat_id = message.chat.id, text = ug, parse_mode = 'MarkdownV2')
+  sp = emoji.emojize("*Categories for Special Undergraduate Programmes* \n\n 'ddp' Double Degree Programmes :rolled-up_newspaper::rolled-up_newspaper:\n\n 'dmp' Double Major Programmes :scroll::scroll:\n\n 'cdp' Concurrent Degree Programmes :rolled-up_newspaper::infinity::rolled-up_newspaper:\n\n 'sep' Student Exchange Programme :currency_exchange:\n\n 'noc' NUS Overseas Colleges :airplane:\n\n 'usp' University Scholars Programme :man_student:\n\n 'utcp' University Town College Programme :school:\n\n 'rvrc' Ridge View Residential College :houses:\n\n 'jd' Joint Degree Programmes :school::rolled-up_newspaper::school:\n\n 'ptp' Part Time Programmes :rolled-up_newspaper::eight-thirty:\n\n 'mp' Minor Programmes :scroll:\n\n 'SPgeneral' General Enquiries for Special Undergraduate Programmes :sun:") 
+  bot.send_message(chat_id = message.chat.id, text = sp, parse_mode = 'MarkdownV2')
+  housing = emoji.emojize("*Categories for NUS Housing and Accomodation* \n\n 'eusoff' Eusoff Hall :house_with_garden:\n\n 'kr' Kent Ridge Hall :house_with_garden:\n\n 'ke7' King Edward VII Hall :house_with_garden:\n\n 'raffles' Raffles Hall :house_with_garden:\n\n 'sheares' Sheares Hall :house_with_garden:\n\n 'temasek' Temasek Hall :house_with_garden:\n\n 'lighthouse' LightHouse :house:\n\n 'pioneer' Pioneer House :house:\n\n 'rvrc' Ridge View Residential College :houses:\n\n 'capt' College of Alice & Peter Tan Residential College :houses:\n\n 'rc4' Residential College 4 :houses:\n\n 'tembusu' Tembusu College :houses:\n\n 'pgp' PGP Residence :office_building:\n\n 'utr' UTown Residence :office_building:\n\n 'Hgeneral' General Enquiries for NUS Housing :sun:")
+  bot.send_message(chat_id = message.chat.id, text = housing, parse_mode = 'MarkdownV2')
+  return
+
+# Check if user wishes to terminate QnA Session
+def userEnd(message):
+  endList = ["end", 'end', "END", "'END'"]
+  if message.text in endList:
+    return True
+  else:
+    return False
+
+# Check if user input is valid: user input should not contain Bot Command
+def validInput(message):
+  entities = message.entities
+  if entities:
+    for entity in entities:
+      if entity.type == "bot_command":
+        return False
+  else:
+    return True
+
+# Check if user input is a valid Category
+def validCategory(message):
+  userInput = message.text
+  if userInput in validCats:
+    return True
+  else:
+    return False
+
+# Fetch question instance from category_dic
+def fetch_question(message):
+  user = message.from_user.id
+  qns = category_dic[user]
+  return qns
+
+# Check if message is a reply. 
+def isReply(message):
+  if message.reply_to_message:
+    return message.reply_to_message
+  return False
+
+#Defining the Ask Question command 
+@bot.message_handler(commands=['askquestion'])
+def askQuestion(message):
+  """Ask a Question! """
+  username = message.from_user.first_name
+  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Before you can submit a question, please select a Category from the list below for which your question pertains to\." 
+  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
+  
+  sendCategoryList(message)
+  
+  last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I have a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\. \n\n\n\nIf you wish to check out our GI Panel, respond with 'end' to terminate your current QnA session\. After which, simply add a forward\-slash '/' in front of your category code\. \n\nIf I want access to general information regarding College of Humanities and Sciences, I will respond with '/chs'\."
+  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
+  bot.register_next_step_handler(current, filterCategoryQuestion)
+
+
+def filterCategoryQuestion(message):
+  """Check validity of user's Category input"""
+
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
+    return
+
+  if not validInput(message):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
+    bot.register_next_step_handler(current, filterCategoryQuestion)
+    return
+
+  category = message.text
+  if validCategory(message):
+    reply = f"You have selected *{message.text}*\. Please type your question after this message\."
+    user = message.from_user.id
+    category_dic[user] = Question(user, category)
+    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
+    bot.register_next_step_handler(current, acceptQuestion)
+  else:
+    reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to submit a Question anymore, please type 'end' after this message\."
+    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
+    bot.register_next_step_handler(current, filterCategoryQuestion)
+
+
+def acceptQuestion(message):
+  """Accepting a user's Question"""
+
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
+    return
+
+  if not validInput(message):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
+    bot.register_next_step_handler(current, acceptQuestion)
+    return
+
+  qns = fetch_question(message)
+  qns.update_question(message.text)
+  pickled_qns = pickle.dumps(qns) 
+  post = {"status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+  collection.insert_one(post)
+  bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
+
+  
+#Defining the Answer Question command 
+@bot.message_handler(commands=['ansquestion'])
+def ansQuestion(message):
+  """Answer a Question! """
+  username = message.from_user.first_name
+  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Please select a Category from the list below to see all available Questions for you to answer\."
+  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
+
+  sendCategoryList(message)
+
+  last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I wish to answer a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\."
+  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
+  bot.register_next_step_handler(current, filterCategoryAnswer)
+
+
+def filterCategoryAnswer(message):
+  """Check validity of user's Category input"""
+
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
+    return
+
+  if not validInput(message):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
+    bot.register_next_step_handler(current, filterCategoryAnswer)
+    return
+
+  category = message.text
+  if validCategory(message):
+    reply = f"You have selected *{category}*\. Please wait while we search for available questions under this Category\."
+    bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = "MarkdownV2")
+    results_count = collection.count_documents({"status": False, "category": category})
+    results = collection.find({"status": False, "category": category})
+    
+    # If there are no available questions
+    if results_count == 0:
+      reply = "Oops! There are no available questions of this category at the moment! Please try again later! \n\nIf you wish to select a new Category, please respond with the new Category code after this message. If you do not wish to answer a Question anymore, please type 'end'."
+      current = bot.send_message(chat_id = message.chat.id, text = reply)
+      bot.register_next_step_handler(current, filterCategoryAnswer)
+      return
+  
+    for result in results:
+      bot.send_message(chat_id = message.chat.id, text = result["question"])
+    reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
+    current = bot.send_message(chat_id = message.chat.id, text = reply)
+    bot.register_next_step_handler(current, acceptAnswer)
+    
+  else:
+    reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to submit a Question anymore, please type 'end' after this message\."
+    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
+    bot.register_next_step_handler(current, filterCategoryAnswer)
+
+
+def acceptAnswer(message):
+  """Accepting a user's Answer to existing Question"""
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
+    return
+
+  if not validInput(message):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your Answer should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
+    bot.register_next_step_handler(current, acceptAnswer)
+    return
+
+  if not isReply(message):
+    current = bot.send_message(chat_id = message.chat.id, text = "We are unable to record your Answer as your input is not a *Reply* to one of our Questions\. Please make sure you are *replying to the message* corresponding to the question you are trying to answer\.", parse_mode = "MarkdownV2")
+    bot.register_next_step_handler(current, acceptAnswer)
+    return
+
+  question_message = isReply(message)
+  question_string = question_message.text
+  result = collection.find_one({"question": question_string})
+  qns = pickle.loads(result["instance"])
+  qns.update_answer(message.from_user.id, message.text)
+  collection.update_one({"question": question_string}, {"$set": {"status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:"))
+
+  
+#Defining the livechat command 
+@bot.message_handler(commands=['clearDB'])
+def clearDB(message):
+  """Clear Database"""
+  collection.delete_many({})
+  messageReply = "Database Cleared!"
+  bot.reply_to(message, messageReply)
+
 #Define start command in main menu 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -56,92 +250,7 @@ def gipanel(message):
   messageReply = emoji.emojize(f"This is the menu for our general information panel. Click on the links below to find out various information about NUS Undergraduate Programmes, Special Undergraduate Programmes, as well as accomodation options available in NUS.\n\n /ugprogrammes Undergraduate Programmes :school: \n\n /spprogrammes Special Undergraduate Programmes :school::star: \n\n /housing Accomodation on Campus :house:")
   bot.reply_to(message, messageReply)
 
-#Defining the Ask Question command 
-@bot.message_handler(commands=['askquestion'])
-def askQuestion(message):
-  """Ask a Question! """
-  username = message.from_user.first_name
-  messageReply = f"Hi {username}\! Welcome to *UniHow QnA*\! Before you can submit a question, please select a Category from the list below for which your question pertains to\." 
-  bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode = 'MarkdownV2')
-  ug = "*Categories for Undergraduate Programmes* \n\n 'chs' College of Humanities and Sciences \n\n 'biz' NUS Business School \n\n 'computing' School of Computing \n\n 'medicine' Yong Loo Lin School of Medicine \n\n 'dentistry' Faculty of Dentistry \n\n 'cde' College of Design and Engineering \n\n 'law' Faculty of Law \n\n 'nursing' Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine \n\n 'pharmacy' Department of Pharmacy \n\n 'music' Yong Siew Toh Conservatory of Music \n\n 'UGgeneral' General Enquires for Undegraduate Programmes" 
-  bot.send_message(chat_id = message.chat.id, text = ug, parse_mode = 'MarkdownV2')
-  sp = "*Categories for Special Undergraduate Programmes* \n\n 'ddp' Double Degree Programmes \n\n 'dmp' Double Major Programmes \n\n 'cdp' Concurrent Degree Programmes \n\n 'sp' Special Programmes \n\n 'jd' Joint Degree Programmes \n\n 'ptp' Part Time Programmes \n\n 'mp' Minor Programmes \n\n 'SPgeneral' General Enquiries for Special Undergraduate Programmes" 
-  bot.send_message(chat_id = message.chat.id, text = sp, parse_mode = 'MarkdownV2')
-  housing = "*Categories for NUS Housing and Accomodation* \n\n 'eusoff' Eusoff Hall \n\n 'kr' Kent Ridge Hall \n\n 'ke7' King Edward VII Hall \n\n 'raffles' Raffles Hall \n\n 'sheares' Sheares Hall \n\n 'temasek' Temasek Hall \n\n 'lighthouse' LightHouse \n\n 'pioneer' Pioneer House \n\n 'rvrc' Ridge View Residential College \n\n 'capt' College of Alice & Peter Tan Residential College \n\n 'rc4' Residential College 4 \n\n 'tembusu' Tembusu College \n\n 'Hgeneral' General Enquiries for NUS Housing"
-  bot.send_message(chat_id = message.chat.id, text = housing, parse_mode = 'MarkdownV2')
-  last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I have a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\. \n\n\n\nIf you wish to check out our GI Panel, respond with 'end' to terminate your current QnA session\. After which, simply add a forward\-slash '/' in front of your category code\. \n\nIf I want access to general information regarding College of Humanities and Sciences, I will respond with '/chs'\."
-  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
-  bot.register_next_step_handler(current, filterCategory)
-
-def filterCategory(message):
-  """Check validity of user's Category input"""
   
-  ## if user wants to terminate this session
-  if message.text == "end" or message.text == "'end'":
-    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
-    return
-
-    ## check validity of user input,  e.g a category code should not contain commands
-  entities = message.entities
-  if entities:
-    for entity in entities:
-      if entity.type == "bot_command":
-        current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
-        bot.register_next_step_handler(current, filterCategory)
-        return
-  
-  valid = False
-  for catcode in validCats:
-    if catcode == message.text:
-      valid = True
-      break
-  if valid:
-    reply = f"You have selected *{message.text}*\. Please type your question after this message\."
-    user = message.from_user.id
-    category_dic[user] = Question(message.text)
-    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
-    bot.register_next_step_handler(current, acceptQuestion)
-  else:
-    reply = f"You have selected *{message.text}*\. Unfortunately, this is not a relevant Category Code\. Please try again\.\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message\."
-    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
-    bot.register_next_step_handler(current, filterCategory)
-
-
-def acceptQuestion(message):
-  """Accepting a user's Question"""
-  
-  ## if user wants to terminate this session
-  if message.text == "end" or message.text == "'end'":
-    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
-    return
-  
-  ## check validity of user input,  e.g a question should not contain commands
-  entities = message.entities
-  if entities:
-    for entity in entities:
-      if entity.type == "bot_command":
-        current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
-        bot.register_next_step_handler(current, acceptQuestion)
-        return
-
-  ## if question is valid, proceed as follows
-  user = message.from_user.id
-  qns = category_dic[user]
-  question = message.text
-  qns.update_question(question)
-  post = {"status": qns.get_status(), "category": qns.get_category(), "question": qns.get_question()}
-  collection.insert_one(post)
-  bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
-
-  
-#Defining the Answer Question command 
-@bot.message_handler(commands=['ansquestion'])
-def ansQuestion(message):
-  """Answer a Question! """
-  username = message.from_user.first_name
-  messageReply = f"Hi {username}! Type your Answer after this message!"
-  bot.reply_to(message, messageReply)
-
 #Defining the livechat command 
 @bot.message_handler(commands=['livechat'])
 def liveChat(message):
