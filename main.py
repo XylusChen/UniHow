@@ -165,7 +165,7 @@ def unanswered_ques(message):
     bot.send_message(chat_id = message.chat.id, text = "There are *no* unanswered questions at the moment. Feel free to come back later! ", parse_mode = 'Markdown')
 
   else : 
-    last = bot.send_message(chat_id = message.chat.id, text = "The above are categories with unanswered questions. You may reply with the category name to access them. For example, if there are unanswered questions in medicine, I will send *medicine* to access the unanswered questions.", parse_mode = 'Markdown')
+    last = bot.send_message(chat_id = message.chat.id, text = "The above are categories with unanswered questions. You may reply with the category name to access them. For example, if there are unanswered questions in medicine, I will send *medicine* to access the unanswered questions. To end, simply reply *end*.", parse_mode = 'Markdown')
     bot.register_next_step_handler(last, filterCategoryAnswer)
   
 
@@ -176,18 +176,12 @@ def unanswered_ques(message):
 def ansQuestion(message):
   """Answer a Question! """
   username = message.from_user.first_name
-  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Please select a Category from the list below to see all available Questions for you to answer\."
-  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
-
+  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Below are all the available categories provided where other users can pose questions under\. You may then answer those questions\."
+  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
 
   sendCategoryList(message)
 
-  second = "If you wish to see which categories have unanswered questions, simply reply *unanswered*. Note that this is case sensitive."
-  bot.send_message(chat_id = message.chat.id, text = second, parse_mode = 'Markdown')
-
-  last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I wish to answer a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\."
-  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
-  bot.register_next_step_handler(current, filterCategoryAnswer)
+  unanswered_ques(message)
 
 
 def filterCategoryAnswer(message):
@@ -196,11 +190,7 @@ def filterCategoryAnswer(message):
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
-  
-  if message.text == "unanswered" :
-    unanswered_ques(message)
-    return
-    
+
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
     bot.register_next_step_handler(current, filterCategoryAnswer)
@@ -208,7 +198,7 @@ def filterCategoryAnswer(message):
 
   category = message.text
   if validCategory(message):
-    reply = f"You have selected *{category}*\. Please wait while we search for available questions under this Category\."
+    reply = f"You have selected *{category}*\. Please wait while we search for questions under this Category\."
     bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = "MarkdownV2")
     results_count = collection.count_documents({"status": False, "category": category})
     results = collection.find({"status": False, "category": category})
@@ -255,6 +245,8 @@ def acceptAnswer(message):
   qns.update_answer(message.from_user.id, message.text)
   collection.update_one({"question": question_string}, {"$set": {"status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:"))
+  broadcast_message = f"*Category*: {qns.category}\n\n" + f"*Question*: {qns.question}\n\n" + f"*Answer*: {qns.answer}"
+  bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
 
   
 #Defining the livechat command 
