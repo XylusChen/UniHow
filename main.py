@@ -15,14 +15,15 @@ cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?r
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-#my_secret = os.environ["API_KEY3"]
-bot = telebot.TeleBot("5313286469:AAEDFBdxquQpjSN34najDUdxWmZ5Cer7uUs")
+my_secret = os.environ["API_KEY3"]
+bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
 
 # Python dictionary to store user-category data pair. User unique ID (key), Category chosen (value)
 category_dic = {}
+
 
 #Read csv file
 def read_csv(csvfilename):
@@ -61,6 +62,15 @@ def userEnd(message):
     return True
   else:
     return False
+
+#Check if question or answer is too short to avoid misuse of bot 
+def too_short(message):
+  len_string = len(message.text)
+  if len_string < 20 : 
+    return True
+  
+  else :
+    return False 
 
 # Check if user input is valid: user input should not contain Bot Command
 def validInput(message):
@@ -147,6 +157,12 @@ def acceptQuestion(message):
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
     return
+
+  if too_short(message):
+    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
+    bot.register_next_step_handler(current, acceptQuestion)
+    return 
+
 
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
@@ -262,6 +278,11 @@ def acceptAnswer(message):
     current = bot.send_message(chat_id = message.chat.id, text = "We are unable to record your Answer as your input is not a *Reply* to one of our Questions\. Please make sure you are *replying to the message* corresponding to the question you are trying to answer\.", parse_mode = "MarkdownV2")
     bot.register_next_step_handler(current, acceptAnswer)
     return
+
+  if too_short(message):
+    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
+    bot.register_next_step_handler(current, acceptAnswer)
+    return 
 
   question_message = isReply(message)
   message_string = question_message.text
