@@ -15,8 +15,8 @@ cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?r
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-my_secret = os.environ["API_KEY3"]
-bot = telebot.TeleBot(my_secret)
+#my_secret = os.environ["API_KEY3"]
+bot = telebot.TeleBot("5313286469:AAEDFBdxquQpjSN34najDUdxWmZ5Cer7uUs")
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
@@ -95,15 +95,17 @@ def isReply(message):
 #Defining the Ask Question command 
 @bot.message_handler(commands=['askquestion'])
 def askQuestion(message):
-  """Ask a Question! """
   username = message.from_user.first_name
-  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Before you can submit a question, please select a Category from the list below for which your question pertains to\." 
+  first = f"Hi {username}\! Welcome to *UniHow QnA*\!"
+
   bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
   
   sendCategoryList(message)
   
-  last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I have a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\. \n\n\n\nIf you wish to check out our GI Panel, respond with 'end' to terminate your current QnA session\. After which, simply add a forward\-slash '/' in front of your category code\. \n\nIf I want access to general information regarding College of Humanities and Sciences, I will respond with '/chs'\."
-  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
+
+  last = "To ask a question, all you have to do is send the category code pertaining to the category you wish to ask a question about. For example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*."
+
+  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, filterCategoryQuestion)
 
 
@@ -167,7 +169,7 @@ def acceptQuestion(message):
     collection.insert_one(post)
 
   finally:
-    bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow QnA Broadcast Channel soon to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
 #Telling user the current number of unanswered questions
@@ -195,8 +197,8 @@ def unanswered_ques(message):
 def ansQuestion(message):
   """Answer a Question! """
   username = message.from_user.first_name
-  first = f"Hi {username}\! Welcome to *UniHow QnA*\! Below are all the available categories provided where other users can pose questions under\. You may then answer those questions\."
-  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
+  first = f"Hi {username}! Welcome to *UniHow QnA*! Below are all the available categories provided where other users can post questions under. You may then answer those questions."
+  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
 
   sendCategoryList(message)
 
@@ -271,7 +273,8 @@ def acceptAnswer(message):
   qns.update_answer(message.from_user.id, message.text)
   pickled_qns = pickle.dumps(qns) 
   collection.update_one({"_id": qns.get_qID()}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
-  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:"))
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out[UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
+
   broadcast_message = f"*Category*: {qns.category}\n\n" + f"*Question*:\n{qns.question}\n\n" + f"*Answer*:\n{qns.answer}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
 
@@ -289,8 +292,10 @@ def clearDB(message):
 def start(message):
   """Welcome new User!"""
   username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to UniHow! \n\n/gipanel to view our General Information Panel! \n\n/askquestion if you want to ask a question! \n\n/ansquestion if you want to answer a question! \n\n/livechat to engage in a real-time conversation with a University senior or Professor!"
+  messageReply = f"Hi {username}! Welcome to UniHow! \n\n/gipanel to learn more about programs and accomodation options within NUS ! \n\n/askquestion if you want to ask a question! \n\n/ansquestion if you want to answer a question! \n\n/livechat to engage in a real-time conversation with a University senior or Professor!"
   bot.reply_to(message, messageReply)
+
+  bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to the [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA) to gain access to our channel where you can find answers to the most pressing questions that our users are asking about NUS!", parse_mode= 'Markdown')
 
 #Define gipanel command in main menu 
 @bot.message_handler(commands=['gipanel'])
