@@ -91,7 +91,7 @@ def isReply(message):
   if message.reply_to_message:
     return message.reply_to_message
   return False
-
+  
 #Defining the Ask Question command 
 @bot.message_handler(commands=['askquestion'])
 def askQuestion(message):
@@ -131,6 +131,13 @@ def filterCategoryQuestion(message):
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, filterCategoryQuestion)
 
+def findLargestID():
+  results = collection.find({})
+  max = 0
+  for result in results:
+    if result["_id"] > max:
+      max = result["_id"]
+  return max
 
 def acceptQuestion(message):
   """Accepting a user's Question"""
@@ -147,11 +154,22 @@ def acceptQuestion(message):
   qns = fetch_question(message)
   qns.update_question(message.text)
   pickled_qns = pickle.dumps(qns) 
-  post = {"status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
-  collection.insert_one(post)
-  bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
+  
+  try:
+    post = {"_id": qns.get_qID(), "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+    collection.insert_one(post)
+  
+  except:
+    largest = findLargestID()
+    qns.set_qID(largest + 1)
+    Question.id_counter = largest + 2
+    post = {"_id": qns.get_qID(), "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+    collection.insert_one(post)
 
+  finally:
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
 
+  
 #Telling user the current number of unanswered questions
 def unanswered_ques(message):
   total_count = 0
@@ -163,9 +181,10 @@ def unanswered_ques(message):
   
   if total_count == 0 :
     bot.send_message(chat_id = message.chat.id, text = "There are *no* unanswered questions at the moment. Feel free to come back later! ", parse_mode = 'Markdown')
+    return
 
   else : 
-    last = bot.send_message(chat_id = message.chat.id, text = "The above are categories with unanswered questions. You may reply with the category name to access them. For example, if there are unanswered questions in medicine, I will send *medicine* to access the unanswered questions. To end, simply reply *end*.", parse_mode = 'Markdown')
+    last = bot.send_message(chat_id = message.chat.id, text = "The above are available categories with unanswered questions. Please reply with the category code to access them. \n\nFor example, if there are unanswered questions in 'medicine', I will respond with *medicine* to access the unanswered questions. To end, simply reply *end*.", parse_mode = 'Markdown')
     bot.register_next_step_handler(last, filterCategoryAnswer)
   
 
@@ -177,7 +196,7 @@ def ansQuestion(message):
   """Answer a Question! """
   username = message.from_user.first_name
   first = f"Hi {username}\! Welcome to *UniHow QnA*\! Below are all the available categories provided where other users can pose questions under\. You may then answer those questions\."
-  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
+  bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
 
   sendCategoryList(message)
 
@@ -211,13 +230,17 @@ def filterCategoryAnswer(message):
       return
   
     for result in results:
-      bot.send_message(chat_id = message.chat.id, text = result["question"])
+      qID = result["_id"]
+      id_text = f"*#{qID}*"
+      q_string = result["question"]
+      final = f"{q_string}\n\n{id_text}"
+      bot.send_message(chat_id = message.chat.id, text = final, parse_mode = "Markdown")
     reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
     current = bot.send_message(chat_id = message.chat.id, text = reply)
     bot.register_next_step_handler(current, acceptAnswer)
     
   else:
-    reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to submit a Question anymore, please type 'end' after this message\."
+    reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to answer a Question anymore, please type 'end' after this message\."
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, filterCategoryAnswer)
 
@@ -239,13 +262,17 @@ def acceptAnswer(message):
     return
 
   question_message = isReply(message)
-  question_string = question_message.text
-  result = collection.find_one({"question": question_string})
+  message_string = question_message.text
+  full = message_string.split("\n")
+  qID_string = full[-1][1:]
+  qID_int = int(qID_string)
+  result = collection.find_one({"_id": qID_int})
   qns = pickle.loads(result["instance"])
   qns.update_answer(message.from_user.id, message.text)
-  collection.update_one({"question": question_string}, {"$set": {"status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
+  pickled_qns = pickle.dumps(qns) 
+  collection.update_one({"_id": qns.get_qID()}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:"))
-  broadcast_message = f"*Category*: {qns.category}\n\n" + f"*Question*: {qns.question}\n\n" + f"*Answer*: {qns.answer}"
+  broadcast_message = f"*Category*: {qns.category}\n\n" + f"*Question*:\n{qns.question}\n\n" + f"*Answer*:\n{qns.answer}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
 
   
