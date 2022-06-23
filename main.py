@@ -1,4 +1,5 @@
 import os
+from unittest import result
 import telebot
 from telebot.types import BotCommand
 import csv
@@ -55,7 +56,7 @@ def sendCategoryList(message):
 
 # Check if user wishes to terminate QnA Session
 def userEnd(message):
-  endList = ["end", 'end', "END", "'END'", "/end", "/END"]
+  endList = ["end", 'end', "END", "'END'", "/end", "/END", 'End']
   if message.text in endList:
     return True
   else:
@@ -150,7 +151,26 @@ def acceptQuestion(message):
   collection.insert_one(post)
   bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow Broadcast Channel soon to see if someone has answered your question!")
 
+
+#Telling user the current number of unanswered questions
+def unanswered_ques(message):
+  total_count = 0
+  for cat in validCats : 
+    result_count = collection.count_documents({"status": False, "category": cat})
+    if result_count > 0 :
+      total_count = total_count + result_count
+      bot.send_message(chat_id = message.chat.id, text = f"There are *{result_count}* unanswered questions in *{cat}*", parse_mode = 'Markdown')
   
+  if total_count == 0 :
+    bot.send_message(chat_id = message.chat.id, text = "There are *no* unanswered questions at the moment. Feel free to come back later! ", parse_mode = 'Markdown')
+
+  else : 
+    last = bot.send_message(chat_id = message.chat.id, text = "The above are categories with unanswered questions. You may reply with the category name to access them. For example, if there are unanswered questions in medicine, I will send *medicine* to access the unanswered questions.", parse_mode = 'Markdown')
+    bot.register_next_step_handler(last, filterCategoryAnswer)
+  
+
+
+
 #Defining the Answer Question command 
 @bot.message_handler(commands=['ansquestion'])
 def ansQuestion(message):
@@ -159,7 +179,11 @@ def ansQuestion(message):
   first = f"Hi {username}\! Welcome to *UniHow QnA*\! Please select a Category from the list below to see all available Questions for you to answer\."
   bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
 
+
   sendCategoryList(message)
+
+  second = "If you wish to see which categories have unanswered questions, simply reply *unanswered*. Note that this is case sensitive."
+  bot.send_message(chat_id = message.chat.id, text = second, parse_mode = 'Markdown')
 
   last = "Once you have selected your Category, please respond with the corresponding category code after this message\. \n\nIf I wish to answer a question pertaining to College of Humanities and Sciences, I will respond with category code 'chs'\."
   current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'MarkdownV2')
@@ -172,7 +196,11 @@ def filterCategoryAnswer(message):
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
-
+  
+  if message.text == "unanswered" :
+    unanswered_ques(message)
+    return
+    
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
     bot.register_next_step_handler(current, filterCategoryAnswer)
