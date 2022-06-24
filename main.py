@@ -12,7 +12,7 @@ from better_profanity import profanity
 import pandas as pd
 import time
 from nospam import UserTimer
-
+import threading
 
 #MongoDB databse for QnA feature 
 cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
@@ -25,6 +25,16 @@ bot = telebot.TeleBot(my_secret)
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
 
+active_cats = []
+def getActiveCats():
+  threading.Timer(3, getActiveCats).start()
+  results = collection.find({"status": False})
+  for result in results:
+    if result["category"] not in active_cats:
+      active_cats.append(result["category"])
+
+getActiveCats()
+      
 # Python dictionary to store user-category data pair. User unique ID (key), Category chosen (value)
 category_dic = {}
 
@@ -223,7 +233,7 @@ def acceptQuestion(message):
 #Telling user the current number of unanswered questions
 def unanswered_ques(message):
   total_count = 0
-  for cat in validCats : 
+  for cat in active_cats: 
     result_count = collection.count_documents({"status": False, "category": cat})
     if result_count > 0 :
       total_count = total_count + result_count
