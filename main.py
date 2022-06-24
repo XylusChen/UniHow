@@ -10,7 +10,8 @@ from qna import Question
 import pickle
 from better_profanity import profanity
 import pandas as pd
-
+import time
+from nospam import UserTimer
 
 
 #MongoDB databse for QnA feature 
@@ -75,15 +76,14 @@ def userEnd(message):
   else:
     return False
 
-#Check if question or answer is too short to avoid misuse of bot 
+#Check if question or answer is too short to avoid misuse of bot. 20 characters minimum. 
 def too_short(message):
   len_string = len(message.text)
   if len_string < 20 : 
     return True
-  
   else :
     return False 
-
+    
 # Check if user input is valid: user input should not contain Bot Command
 def validInput(message):
   entities = message.entities
@@ -125,7 +125,7 @@ def askQuestion(message):
   sendCategoryList(message)
   
 
-  last = "To ask a question, all you have to do is send the category code pertaining to the category you wish to ask a question about. For example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*."
+  last = "To ask a question, all you have to do is send the category code pertaining to the subject your question is about. For example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*."
 
   current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, filterCategoryQuestion)
@@ -163,6 +163,8 @@ def findLargestID():
       max = result["_id"]
   return max
 
+timeTrack = {}
+
 def acceptQuestion(message):
   """Accepting a user's Question"""
 
@@ -170,21 +172,30 @@ def acceptQuestion(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
     return
 
+  user = message.from_user.id
+  if user in timeTrack:
+    timerInstance = timeTrack[user]
+    status = timerInstance.canSend()
+    if not status:
+      timeLeft = timerInstance.timeTillSend()
+      bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *5 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
+    return
+    
+  if profanity.contains_profanity(message.text):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptQuestion)
+    return   
+
   if too_short(message):
     current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
     bot.register_next_step_handler(current, acceptQuestion)
     return 
 
-
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
     bot.register_next_step_handler(current, acceptQuestion)
     return
-  
-  if profanity.contains_profanity(message.text):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.")
-    bot.register_next_step_handler(current, acceptQuestion)
-    return 
+
 
   qns = fetch_question(message)
   qns.update_question(message.text)
@@ -202,6 +213,9 @@ def acceptQuestion(message):
     collection.insert_one(post)
 
   finally:
+    user = message.from_user.id
+    timeTrack[user] = UserTimer(user, time.time())
+
     bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow QnA Broadcast Channel soon to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
@@ -286,6 +300,16 @@ def acceptAnswer(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
 
+  if profanity.contains_profanity(message.text):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptAnswer)
+    return   
+  
+  if too_short(message):
+    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
+    bot.register_next_step_handler(current, acceptAnswer)
+    return 
+  
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your Answer should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
     bot.register_next_step_handler(current, acceptAnswer)
@@ -296,10 +320,7 @@ def acceptAnswer(message):
     bot.register_next_step_handler(current, acceptAnswer)
     return
 
-  if too_short(message):
-    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
-    bot.register_next_step_handler(current, acceptAnswer)
-    return 
+
 
   question_message = isReply(message)
   message_string = question_message.text
@@ -332,6 +353,8 @@ def start(message):
   username = message.from_user.first_name
   messageReply = f"Hi {username}! Welcome to UniHow! \n\n/gipanel to learn more about programs and accomodation options within NUS ! \n\n/askquestion if you want to ask a question! \n\n/ansquestion if you want to answer a question! \n\n/livechat to engage in a real-time conversation with a University senior or Professor!"
   bot.reply_to(message, messageReply)
+
+  bot.send_message(chat_id = message.chat.id, text = "We urge all users to behave responsibly on UniHow, especially when using our QnA Forum and LiveChat features. It takes a communal effort to keep this platform *safe* and *professional* so that everyone can use it with a peace of mind. If you notice any signs of misconduct or inappropriacy, please let us know by using our /report function, more detailed instructions will follow.", parse_mode = "Markdown")
 
   bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to the [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA) to gain access to our channel where you can find answers to the most pressing questions that our users are asking about NUS!", parse_mode= 'Markdown')
 
