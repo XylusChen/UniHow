@@ -8,6 +8,9 @@ import pymongo
 from pymongo import MongoClient
 from qna import Question
 import pickle
+from better_profanity import profanity
+import pandas as pd
+
 
 
 #MongoDB databse for QnA feature 
@@ -34,6 +37,15 @@ def read_csv(csvfilename):
   with open(csvfilename, encoding='utf-8') as csvfile:
       rows = [row for row in csv.reader(csvfile)]
   return rows
+
+#adding more censored words 
+csv_black_list = pd.read_csv('blacklist.csv')
+saved_column = csv_black_list.words #you can also use df['column_name']
+list_words = list(saved_column)
+print(list_words)
+profanity.add_censor_words(list_words)
+
+
 
 #Set the commands in the main menu
 bot.set_my_commands([
@@ -168,6 +180,11 @@ def acceptQuestion(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
     bot.register_next_step_handler(current, acceptQuestion)
     return
+  
+  if profanity.contains_profanity(message.text):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.")
+    bot.register_next_step_handler(current, acceptQuestion)
+    return 
 
   qns = fetch_question(message)
   qns.update_question(message.text)
