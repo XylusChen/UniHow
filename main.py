@@ -56,7 +56,6 @@ print(list_words)
 profanity.add_censor_words(list_words)
 
 
-
 #Set the commands in the main menu
 bot.set_my_commands([
   BotCommand('start', 'Begin your UniHow journey!'),
@@ -64,7 +63,9 @@ bot.set_my_commands([
   BotCommand('askquestion', 'Send us your questions!'),
   BotCommand('ansquestion', 'Assist peers with their queries!'),
   BotCommand('livechat', 'Join our Chat Room!'),
-  BotCommand('about', 'Find out more about UniHow!')
+  BotCommand('about', 'Find out more about UniHow!'),
+  BotCommand('feedback', 'Help us improve! Send us your feedback!'),
+  BotCommand('report', 'File a report! Help keep the UniHow community safe!')
 ])
 
 # Sends out list of Valid Categories
@@ -249,7 +250,6 @@ def unanswered_ques(message):
   
 
 
-
 #Defining the Answer Question command 
 @bot.message_handler(commands=['ansquestion'])
 def ansQuestion(message):
@@ -340,13 +340,83 @@ def acceptAnswer(message):
   result = collection.find_one({"_id": qID_int})
   qns = pickle.loads(result["instance"])
   qns.update_answer(message.from_user.id, message.text)
-  collection.update_one({"_id": qID_int}, {"$set": {"status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
+  pickled_qns = pickle.dumps(qns)
+  collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out[UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
-  broadcast_message = f"*Category*: {qns.category}\n\n" + f"*Question* #*{qID_int}*:\n{qns.question}\n\n" + f"*Answer*:\n{qns.answer}"
+  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
 
+
+@bot.message_handler(commands=['feedback'])
+def feedback(message):
+  """Feedback"""
+  username = message.from_user.first_name
+  messageReply = f"Hi {username}! Welcome to UniHow's Feedback Portal! You may send us your feedback after this message. Thank you!"
+  current = bot.send_message(chat_id = message.chat.id, text = messageReply)
+  bot.register_next_step_handler(current, acceptFeedback)
+
+def acceptFeedback(message):
+  """Accepting a user's feedback"""
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our Feedback Portal! Come back anytime if you have more comments or suggestions for us!")
+    return
+
+  if profanity.contains_profanity(message.text):
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptFeedback)
+    return   
   
+  if too_short(message):
+    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We would appreciate a more comprehensive and constructive feedback so that we can understand your experience better! Thank you for understanding! Please try again.")
+    bot.register_next_step_handler(current, acceptFeedback)
+    return 
+
+  name = message.from_user.last_name + " " + message.from_user.first_name
+  feedback = f"*From*: {name} \n\n*Feedback*: {message.text}"
+  bot.send_message(chat_id = -1001541900629, text = feedback, parse_mode = "Markdown")
+  
+@bot.message_handler(commands=['report'])
+def report(message):
+  """Report"""
+  username = message.from_user.first_name
+  messageReply = f"Hi {username}! Welcome to UniHow's Report Portal! Before we begin, allow us to apologise for any unpleasant experience you may have had while using our bot. Rest assured that your report will be treated seriously and action will be taken against those who have misused our bot!\n\nPlease select the feature that your report pertains to. Send 'qna forum' to report a matter relating to our QnA Forum. Send 'livechat' to report a matter relating to our LiveChat feature. Thank you!"
+  current = bot.send_message(chat_id = message.chat.id, text = messageReply)
+  bot.register_next_step_handler(current, filterReportCat)
+
+def filterReportCat(message):
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our Report Portal! Come back again if you need to make a new report!")
+    return
+
+  if message.text == 'qna forum':
+    current = bot.send_message(chat_id = message.chat.id, text = "You have selected 'qna forum'. Please send us the *Question ID* of the QnA set which you believe a user has behaved inappropriately. \n\nE.g. Question #3 has Question ID: 3, reply with the digit 3.", parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptReportQNA)
+    return
+
+  if message.text == 'livechat':
+    current = bot.send_message(chat_id = message.chat.id, text = "Work in Progress")
+    return
+
+  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are 'qna forum' and 'livechat'. Please check your input again. \n\nIf you do not wish to file a report anymore, please type 'end'.")
+  bot.register_next_step_handler(current, filterReportCat)
+  return
+
+def acceptReportQNA(message):
+  try:
+    name = message.from_user.last_name + " " + message.from_user.first_name
+    qID = int(message.text)
+    result = collection.find_one({"_id": qID})
+    qns = pickle.loads(result["instance"])
+    reported = f"*Reported by:* {name}\n\n *Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
+    bot.send_message(chat_id = -1001541900629, text = reported, parse_mode= "Markdown")
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for filing a report. Your contribution has made the UniHow community a safer, more wholesome place!")
+
+  except:
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input Question ID is *invalid*, please check that you have keyed in the correct Question ID. Thank you!", parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptReportQNA)
+
+    
 #Defining the livechat command 
 @bot.message_handler(commands=['clearDB'])
 def clearDB(message):
