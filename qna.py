@@ -2,8 +2,7 @@ class Question:
   id_counter = 0
 
   def __init__(self, from_user, category):
-    self.qID = Question.id_counter
-    Question.id_counter += 1
+    self.qID = None
     self.from_user = from_user
     self.category = category
     self.question = None
@@ -19,8 +18,9 @@ class Question:
     self.answer = answer
     self.status = True
 
-  def set_qID(self, value):
-    self.qID = value
+  def set_qID(self):
+    self.qID = Question.id_counter
+    Question.id_counter += 1
   
   def get_qID(self):
     return self.qID
