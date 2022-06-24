@@ -28,7 +28,6 @@ validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "
 # Python dictionary to store user-category data pair. User unique ID (key), Category chosen (value)
 category_dic = {}
 
-
 #Read csv file
 def read_csv(csvfilename):
   """
@@ -164,6 +163,7 @@ def findLargestID():
   return max
 
 timeTrack = {}
+id_counter = 0
 
 def acceptQuestion(message):
   """Accepting a user's Question"""
@@ -173,13 +173,13 @@ def acceptQuestion(message):
     return
 
   user = message.from_user.id
-  #if user in timeTrack:
-    #timerInstance = timeTrack[user]
-    #status = timerInstance.canSend()
-    #if not status:
-      #timeLeft = timerInstance.timeTillSend()
-      #bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *5 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
-    #return
+  if user in timeTrack:
+    timerInstance = timeTrack[user]
+    status = timerInstance.canSend()
+    if not status:
+      timeLeft = timerInstance.timeTillSend()
+      bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *5 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
+    return
     
   if profanity.contains_profanity(message.text):
     current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
@@ -202,16 +202,16 @@ def acceptQuestion(message):
   pickled_qns = pickle.dumps(qns) 
   
   try:
-    qns.set_qID()
-    post = {"_id": qns.get_qID(), "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+    post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     collection.insert_one(post)
+    Question.id_counter += 1
   
   except:
     largest = findLargestID()
     Question.id_counter = largest + 1
-    qns.set_qID()
-    post = {"_id": qns.get_qID(), "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+    post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     collection.insert_one(post)
+    Question.id_counter += 1
 
   finally:
     user = message.from_user.id

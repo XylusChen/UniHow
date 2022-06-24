@@ -1,8 +1,7 @@
 class Question:
   id_counter = 0
-
+  
   def __init__(self, from_user, category):
-    self.qID = None
     self.from_user = from_user
     self.category = category
     self.question = None
@@ -17,13 +16,6 @@ class Question:
     self.answered_by = answered_by
     self.answer = answer
     self.status = True
-
-  def set_qID(self):
-    self.qID = Question.id_counter
-    Question.id_counter += 1
-  
-  def get_qID(self):
-    return self.qID
   
   def get_category(self):
     return self.category
