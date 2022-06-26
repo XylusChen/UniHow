@@ -25,17 +25,7 @@ bot = telebot.TeleBot(my_secret)
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
 
-active_cats = []
-def getActiveCats():
-  threading.Timer(3, getActiveCats).start()
-  results = collection.find({"status": False})
-  for result in results:
-    if result["category"] not in active_cats:
-      active_cats.append(result["category"])
 
-getActiveCats()
-      
-# Python dictionary to store user-category data pair. User unique ID (key), Category chosen (value)
 category_dic = {}
 
 #Read csv file
@@ -227,27 +217,44 @@ def acceptQuestion(message):
   finally:
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
-
+    catQCount[qns.get_category()] += 1
     bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow QnA Broadcast Channel soon to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
 #Telling user the current number of unanswered questions
-def unanswered_ques(message):
-  total_count = 0
-  for cat in active_cats: 
-    result_count = collection.count_documents({"status": False, "category": cat})
-    if result_count > 0 :
-      total_count = total_count + result_count
-      bot.send_message(chat_id = message.chat.id, text = f"There are *{result_count}* unanswered questions in *{cat}*", parse_mode = 'Markdown')
+catQCount = {}
+for cat in validCats:
+  catQCount[cat] = 0
+catQCount["updated"] = False
+
+def update_catQCount():
+  results = collection.find({"status": False})
+  for result in results:
+    category = result["category"]
+    catQCount[category] += 1
+  catQCount["updated"] = True
+  return
   
-  if total_count == 0 :
+def unanswered_quesV2(message):
+  if catQCount["updated"] == False:
+    update_catQCount()
+
+  total = 0
+  for category in catQCount:
+    if category == "updated":
+      continue
+    
+    if catQCount[category] > 0:
+      total += catQCount[category]
+      bot.send_message(chat_id = message.chat.id, text = f"There are *{catQCount[category]}* unanswered questions in *{category}*", parse_mode = 'Markdown')
+
+  if total == 0 :
     bot.send_message(chat_id = message.chat.id, text = "There are *no* unanswered questions at the moment. Feel free to come back later! ", parse_mode = 'Markdown')
     return
 
   else : 
     last = bot.send_message(chat_id = message.chat.id, text = "The above are available categories with unanswered questions. Please reply with the category code to access them. \n\nFor example, if there are unanswered questions in 'medicine', I will respond with *medicine* to access the unanswered questions. To end, simply reply *end*.", parse_mode = 'Markdown')
     bot.register_next_step_handler(last, filterCategoryAnswer)
-  
 
 
 #Defining the Answer Question command 
@@ -260,7 +267,7 @@ def ansQuestion(message):
 
   sendCategoryList(message)
 
-  unanswered_ques(message)
+  unanswered_quesV2(message)
 
 
 def filterCategoryAnswer(message):
@@ -342,6 +349,7 @@ def acceptAnswer(message):
   qns.update_answer(message.from_user.id, message.text)
   pickled_qns = pickle.dumps(qns)
   collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
+  catQCount[qns.get_category()] -= 1
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out[UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
@@ -374,6 +382,7 @@ def acceptFeedback(message):
 
   name = message.from_user.last_name + " " + message.from_user.first_name
   feedback = f"*From*: {name} \n\n*Feedback*: {message.text}"
+  bot.send_message(chat_id = message.chat.id, text = "Thank you for your feedback! Your feedback has been successfully recorded. We greatly appreciate your efforts in helping us improve. Come back anytime if you have more comments or suggestions for us!")
   bot.send_message(chat_id = -1001541900629, text = feedback, parse_mode = "Markdown")
   
 @bot.message_handler(commands=['report'])
