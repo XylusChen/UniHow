@@ -19,7 +19,7 @@ cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?r
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-my_secret = os.environ["MYPRECIOUS"]
+my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
@@ -204,6 +204,8 @@ def acceptQuestion(message):
   
   try:
     post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
+    if catQCount["updated"] == False:
+      update_catQCount()
     collection.insert_one(post)
     Question.id_counter += 1
   
@@ -242,7 +244,14 @@ def update_catQCount():
     catQCount[cat] += 1
   catQCount["updated"] = True
   return
-  
+
+def reset_catQCount():
+  catQCount = {}
+  for cat in validCats:
+    catQCount[cat] = 0
+  catQCount["updated"] = False
+  return
+
 def unanswered_quesV2(message):
   if catQCount["updated"] == False:
     update_catQCount()
@@ -440,7 +449,8 @@ def acceptReportQNA(message):
 def clearDB(message):
   """Clear Database"""
   collection.delete_many({})
-  messageReply = "Database Cleared!"
+  reset_catQCount()
+  messageReply = "Database Cleared! catQCount reset!"
   bot.reply_to(message, messageReply)
 
 #Define start command in main menu 
