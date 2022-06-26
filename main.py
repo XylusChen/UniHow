@@ -180,7 +180,7 @@ def acceptQuestion(message):
     if not status:
       timeLeft = timerInstance.timeTillSend()
       bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *5 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
-    return
+      return
     
   if profanity.contains_profanity(message.text):
     current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
@@ -227,30 +227,27 @@ def acceptQuestion(message):
   
 #Telling user the current number of unanswered questions
 catQCount = {}
-for cat in validCats:
-  catQCount[cat] = 0
-catQCount["updated"] = False
 
 def update_catQCount():
+
+  for cat in validCats:
+    catQCount[cat] = 0
+  catQCount["updated"] = False
+  
   results_count = collection.count_documents({"status": False})
   results = collection.find({"status": False})
   
   if results_count == 0:
     catQCount["updated"] = True
     return
-    
+
   for result in results:
     cat = result["category"]
     catQCount[cat] += 1
   catQCount["updated"] = True
   return
 
-def reset_catQCount():
-  catQCount = {}
-  for cat in validCats:
-    catQCount[cat] = 0
-  catQCount["updated"] = False
-  return
+update_catQCount()
 
 def unanswered_quesV2(message):
   if catQCount["updated"] == False:
@@ -449,7 +446,7 @@ def acceptReportQNA(message):
 def clearDB(message):
   """Clear Database"""
   collection.delete_many({})
-  reset_catQCount()
+  update_catQCount()
   messageReply = "Database Cleared! catQCount reset!"
   bot.reply_to(message, messageReply)
 

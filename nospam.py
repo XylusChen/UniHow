@@ -11,7 +11,7 @@ class UserTimer:
     return (time.time() - self.lastInputTime) > UserTimer.INTERVAL
     
   def timeTillSend(self):
-    timeLeft = round(300 - (time.time() - self.lastInputTime))
+    timeLeft = round(UserTimer.INTERVAL - (time.time() - self.lastInputTime))
     if timeLeft > 0:
       return timeLeft
     else:
