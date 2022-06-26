@@ -19,7 +19,7 @@ cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?r
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-my_secret = os.environ["API_KEY3"]
+my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
