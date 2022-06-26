@@ -166,6 +166,13 @@ def findLargestID():
 timeTrack = {}
 id_counter = 0
 
+@bot.message_handler(commands=['resettimer'])
+def resettimer(message):
+  timeTrack.clear()
+  bot.send_message(chat_id = message.chat.id, text = "Timer Reset!")
+  return
+  
+
 def acceptQuestion(message):
   """Accepting a user's Question"""
 
