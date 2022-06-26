@@ -210,6 +210,8 @@ def acceptQuestion(message):
   except:
     largest = findLargestID()
     Question.id_counter = largest + 1
+    if catQCount["updated"] == False:
+      update_catQCount()
     post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     collection.insert_one(post)
     Question.id_counter += 1
@@ -228,10 +230,16 @@ for cat in validCats:
 catQCount["updated"] = False
 
 def update_catQCount():
+  results_count = collection.count_documents({"status": False})
   results = collection.find({"status": False})
+  
+  if results_count == 0:
+    catQCount["updated"] = True
+    return
+    
   for result in results:
-    category = result["category"]
-    catQCount[category] += 1
+    cat = result["category"]
+    catQCount[cat] += 1
   catQCount["updated"] = True
   return
   
@@ -302,6 +310,7 @@ def filterCategoryAnswer(message):
       q_string = result["question"]
       final = f"{q_string}\n\n{id_text}"
       bot.send_message(chat_id = message.chat.id, text = final, parse_mode = "Markdown")
+    
     reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
     current = bot.send_message(chat_id = message.chat.id, text = reply)
     bot.register_next_step_handler(current, acceptAnswer)
