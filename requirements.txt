@@ -5,9 +5,3 @@ emoji
 pymongo
 mongohelper
 pandas
-pickle
-time
-os
-telebot
-csv
-threading
