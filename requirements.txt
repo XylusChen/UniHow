@@ -1,3 +1,13 @@
+better-profanity
 numpy
 pyTelegramBotAPI
 emoji
+pymongo
+mongohelper
+pandas
+pickle
+time
+os
+telebot
+csv
+threading
