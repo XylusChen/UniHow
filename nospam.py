@@ -1,7 +1,7 @@
 import time
 
 class UserTimer:
-  INTERVAL = 300 # 5 minutes, number of seconds.
+  INTERVAL = 180 # 5 minutes, number of seconds.
   
   def __init__(self, userID, currentTime):
     self.userID = userID

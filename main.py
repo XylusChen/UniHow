@@ -15,21 +15,18 @@ from nospam import UserTimer
 import threading
 
 
-
-
-#MongoDB databse for QnA feature 
-cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
+# MongoDB database integration
+db_secret = os.environ['MongoDB_Token']
+cluster = MongoClient(db_secret)
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-my_secret = os.environ["MYPRECIOUS"]
+# Bot Token
+my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
-
-
-category_dic = {}
 
 #Read csv file
 def read_csv(csvfilename):
@@ -60,7 +57,7 @@ bot.set_my_commands([
   BotCommand('report', 'File a report! Help keep the UniHow community safe!')
 ])
 
-# Sends out list of Valid Categories
+# Sends out lists of Valid Categories
 def sendCategoryList(message):
   ug = emoji.emojize("*Categories for Undergraduate Programmes* \n\n 'chs' College of Humanities and Sciences :closed_book:\n\n 'biz' NUS Business School :briefcase:\n\n 'computing' School of Computing :laptop:\n\n 'medicine' Yong Loo Lin School of Medicine :stethoscope:\n\n 'dentistry' Faculty of Dentistry :tooth:\n\n 'cde' College of Design and Engineering :artist_palette::wrench:\n\n 'law' Faculty of Law :classical_building:\n\n 'nursing' Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine :syringe:\n\n 'pharmacy' Department of Pharmacy :pill:\n\n 'music' Yong Siew Toh Conservatory of Music :musical_note:\n\n 'UGgeneral' General Enquires for Undegraduate Programmes :sun:") 
   bot.send_message(chat_id = message.chat.id, text = ug, parse_mode = 'MarkdownV2')
@@ -70,6 +67,7 @@ def sendCategoryList(message):
   bot.send_message(chat_id = message.chat.id, text = housing, parse_mode = 'MarkdownV2')
   return
 
+
 # Check if user wishes to terminate QnA Session
 def userEnd(message):
   endList = ["end", 'end', "END", "'END'", "/end", "/END", 'End']
@@ -78,13 +76,14 @@ def userEnd(message):
   else:
     return False
 
-#Check if question or answer is too short to avoid misuse of bot. 20 characters minimum. 
+# Check if question or answer is too short to avoid misuse of bot. 20 characters minimum. 
 def too_short(message):
   len_string = len(message.text)
   if len_string < 20 : 
     return True
   else :
     return False 
+short_warning = "Your input is too short. We hope to create an environment where our users will ask questions, provide answers or feedback that are constructive and will be of value to everyone. Thank you for understanding! Please key in your input again."
     
 # Check if user input is valid: user input should not contain Bot Command
 def validInput(message):
@@ -95,6 +94,7 @@ def validInput(message):
         return False
   else:
     return True
+invalidInput_warning = "Your input should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message."
 
 # Check if user input is a valid Category
 def validCategory(message):
@@ -104,6 +104,8 @@ def validCategory(message):
   else:
     return False
 
+# Python dictionary, stores user_id as keys and QS instances as value.
+category_dic = {}
 # Fetch question instance from category_dic
 def fetch_question(message):
   user = message.from_user.id
@@ -111,28 +113,34 @@ def fetch_question(message):
   return qns
 
 # Check if message is a reply. 
+# If true, returns the original message that was replied to, else returns False. 
 def isReply(message):
   if message.reply_to_message:
     return message.reply_to_message
   return False
-  
+
+# Detect Profanity in User Input.
+def containsProfanity(message):
+  if profanity.contains_profanity(message.text):
+    return True
+  return False
+profanity_warning = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban."
+
+
 #Defining the Ask Question command 
 @bot.message_handler(commands=['askquestion'])
 def askQuestion(message):
   username = message.from_user.first_name
   first = f"Hi {username}\! Welcome to *UniHow QnA*\!"
-
   bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'MarkdownV2')
   
   sendCategoryList(message)
   
-
-  last = "To ask a question, all you have to do is send the category code pertaining to the subject your question is about. For example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*."
-
+  last = "To ask a question, all you have to do is send the category code pertaining to the subject your question is about. \n\nFor example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*. \n\nPlease note that you may submit 1 question every *3 minutes*."
   current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, filterCategoryQuestion)
 
-
+# Process User's category selection.
 def filterCategoryQuestion(message):
   """Check validity of user's Category input"""
 
@@ -140,23 +148,37 @@ def filterCategoryQuestion(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
     return
 
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
+    bot.register_next_step_handler(current, filterCategoryQuestion)
+    return
+  
   if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
+    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
     bot.register_next_step_handler(current, filterCategoryQuestion)
     return
 
   category = message.text
+  # If User input is Valid.
   if validCategory(message):
     reply = f"You have selected *{message.text}*\. Please type your question after this message\."
     user = message.from_user.id
+
+    # Upon successful category selection, new QS instance is initialized. 
+    # Stored as value in dictionary with User_ID as key.
     category_dic[user] = Question(user, category)
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, acceptQuestion)
+
+  # If User input is Invalid.
   else:
     reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to submit a Question anymore, please type 'end' after this message\."
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, filterCategoryQuestion)
 
+
+# Finds the largest existing qID in database. 
+# Purpose of this function will be explained in acceptQuestion() function.
 def findLargestID():
   results = collection.find({})
   max = 0
@@ -165,16 +187,10 @@ def findLargestID():
       max = result["_id"]
   return max
 
+# Python dictionary, user_id as key, UserTimer instance as value.
 timeTrack = {}
-id_counter = 0
 
-@bot.message_handler(commands=['resettimer'])
-def resettimer(message):
-  timeTrack.clear()
-  bot.send_message(chat_id = message.chat.id, text = "Timer Reset!")
-  return
-  
-
+# Process User's Question input.
 def acceptQuestion(message):
   """Accepting a user's Question"""
 
@@ -182,74 +198,94 @@ def acceptQuestion(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
     return
 
+  # Creates UserTimer instance for User. 
+  # UserTimer instance keeps track of time since User's latest Question post. 
+  # 3min interval between question submissions, prevent spam.
   user = message.from_user.id
   if user in timeTrack:
     timerInstance = timeTrack[user]
     status = timerInstance.canSend()
     if not status:
       timeLeft = timerInstance.timeTillSend()
-      bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *5 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
+      bot.send_message(chat_id = message.chat.id, text = f"You have recently just posted a Question! Users are allowed to post one question every *3 minutes*, this is to prevent unnecessary spamming and overloading of our servers. Thank you for your cooperation! \n\nYou may post your next question in *{timeLeft}* seconds.", parse_mode = "Markdown")
       return
-    
-  if profanity.contains_profanity(message.text):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptQuestion)
     return   
 
   if too_short(message):
-    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
+    current = bot.send_message(chat_id= message.chat.id, text = short_warning)
     bot.register_next_step_handler(current, acceptQuestion)
     return 
 
   if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your question should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message.")
+    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
     bot.register_next_step_handler(current, acceptQuestion)
     return
 
-
+  # Retrieve QS instance from category_dic
+  # Updates QS instance with question (user input, type: String)
   qns = fetch_question(message)
   qns.update_question(message.text)
+
+  # Deserialize QS instance into bytestring representation. 
+  # Store bytestring value into MongoDB.
   pickled_qns = pickle.dumps(qns) 
-  
+
+  # Creates post/document, insert into Database.
   try:
     post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     if catQCount["updated"] == False:
       update_catQCount()
     collection.insert_one(post)
     Question.id_counter += 1
-  
+
+  # The exception we are trying to catch here is when QS instances are created with conflicting qID values.
+  # Please refer to README document for detailed explanation on how this might happen.
   except:
+    
+    # Finding the largest existing qID in database allows us to continue assigning ID values to QS instances sequentially. 
     largest = findLargestID()
     Question.id_counter = largest + 1
+
+    # Update catQCount dictionary with Question-Category count.
     if catQCount["updated"] == False:
       update_catQCount()
+
+    # Creates post/document, insert into Database.
     post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     collection.insert_one(post)
     Question.id_counter += 1
 
   finally:
+    # Create new UserTimer instance to update time of latest Question post. 
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
     bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded! Your question number is *#{Question.id_counter - 1}*. Look out for it on the UniHow QnA Broadcast Channel to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
-#Telling user the current number of unanswered questions
+# Python Dictionary, Key: Category, Value: No. of Unanswered Questions.
 catQCount = {}
 
 def update_catQCount():
-
+  # Reset. All Question count set to 0.
   for cat in validCats:
     catQCount[cat] = 0
   catQCount["updated"] = False
-  
+
+  # Search for existing unanswered Questions in database.
   results_count = collection.count_documents({"status": False})
   results = collection.find({"status": False})
-  
+
+  # Database empty.
   if results_count == 0:
     catQCount["updated"] = True
     return
 
+  # Update Question count for respective categories.
   for result in results:
     cat = result["category"]
     catQCount[cat] += 1
@@ -258,10 +294,12 @@ def update_catQCount():
 
 update_catQCount()
 
+# Notify user of Categories with unanswered Questions, and how many of them.
 def unanswered_quesV2(message):
+
   if catQCount["updated"] == False:
     update_catQCount()
-
+  
   total = 0
   for category in catQCount:
     if category == "updated":
@@ -271,6 +309,7 @@ def unanswered_quesV2(message):
       total += catQCount[category]
       bot.send_message(chat_id = message.chat.id, text = f"There are *{catQCount[category]}* unanswered questions in *{category}*", parse_mode = 'Markdown')
 
+  # If there are no unanswered Questions across all Categories.
   if total == 0 :
     bot.send_message(chat_id = message.chat.id, text = "There are *no* unanswered questions at the moment. Feel free to come back later! ", parse_mode = 'Markdown')
     return
@@ -289,10 +328,9 @@ def ansQuestion(message):
   bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
 
   sendCategoryList(message)
-
   unanswered_quesV2(message)
 
-
+# Process User's Category selection.
 def filterCategoryAnswer(message):
   """Check validity of user's Category input"""
 
@@ -300,15 +338,24 @@ def filterCategoryAnswer(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
 
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
+    bot.register_next_step_handler(current, filterCategoryAnswer)
+    return
+  
   if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your Category Code should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
+    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
     bot.register_next_step_handler(current, filterCategoryAnswer)
     return
 
   category = message.text
+  # If User input is Valid. 
   if validCategory(message):
     reply = f"You have selected *{category}*\. Please wait while we search for questions under this Category\."
     bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = "MarkdownV2")
+
+    # Search for Question Sets through database. 
+    # Matching Category, Unanswered.
     results_count = collection.count_documents({"status": False, "category": category})
     results = collection.find({"status": False, "category": category})
     
@@ -318,7 +365,8 @@ def filterCategoryAnswer(message):
       current = bot.send_message(chat_id = message.chat.id, text = reply)
       bot.register_next_step_handler(current, filterCategoryAnswer)
       return
-  
+
+    # Send Question to user, along with Question ID.
     for result in results:
       qID = result["_id"]
       id_text = f"*#{qID}*"
@@ -329,66 +377,80 @@ def filterCategoryAnswer(message):
     reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
     current = bot.send_message(chat_id = message.chat.id, text = reply)
     bot.register_next_step_handler(current, acceptAnswer)
-    
+
+  # If User input is invalid. 
   else:
     reply = "Your input is invalid\. Please respond with a valid Category Code\. Note that the codes are *case sensitive* and you *should not* include the quotation marks\. \n\nIf you do not wish to answer a Question anymore, please type 'end' after this message\."
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
     bot.register_next_step_handler(current, filterCategoryAnswer)
 
 
-#Periodic broadcast message for the bot 
+# Periodic broadcast message for the bot, every 5 Question posts.
 broadcast_count = 0 
 
+# Process User's Answer input.
 def acceptAnswer(message):
   """Accepting a user's Answer to existing Question"""
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
 
-  if profanity.contains_profanity(message.text):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptAnswer)
-    return   
+    return
   
   if too_short(message):
-    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We hope to create an environment where our users will ask questions and submit answers that will be of value to everyone. Thank you for understanding! Please key in your input again.")
+    current = bot.send_message(chat_id= message.chat.id, text = short_warning)
     bot.register_next_step_handler(current, acceptAnswer)
     return 
   
   if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your Answer should not contain any Bot Commands, please try again!\n\nIf you do not wish to answer a Question anymore, please type 'end' after this message.")
+    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
     bot.register_next_step_handler(current, acceptAnswer)
     return
 
+  # Check if User's message is a Reply.
   if not isReply(message):
     current = bot.send_message(chat_id = message.chat.id, text = "We are unable to record your Answer as your input is not a *Reply* to one of our Questions\. Please make sure you are *replying to the message* corresponding to the question you are trying to answer\.", parse_mode = "MarkdownV2")
     bot.register_next_step_handler(current, acceptAnswer)
     return
 
-
+  # Retrieve Original Message (contains the Question)
   question_message = isReply(message)
   message_string = question_message.text
+
+  # Perform String split and indexing to retrieve qID.
   full = message_string.split("\n")
   qID_string = full[-1][1:]
   qID_int = int(qID_string)
+
+  # Fetch QS from Database using qID as search filter.
   result = collection.find_one({"_id": qID_int})
   qns = pickle.loads(result["instance"])
+
+  # Update QS instance with Answer and user_id.
   qns.update_answer(message.from_user.id, message.text)
   pickled_qns = pickle.dumps(qns)
+
+  # Update post/document in database.
   collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
   catQCount[qns.get_category()] -= 1
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
+  # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
+
+  # Update Broadcast Count
   global broadcast_count
   broadcast_count = broadcast_count + 1
-  if broadcast_count == 5 :
+  if broadcast_count == 5:
     bot.send_message(chat_id = -1001712487991, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
     broadcast_count = 0
-    print(broadcast_count)
 
 
+# Defining the feedback command.
 @bot.message_handler(commands=['feedback'])
 def feedback(message):
   """Feedback"""
@@ -397,27 +459,36 @@ def feedback(message):
   current = bot.send_message(chat_id = message.chat.id, text = messageReply)
   bot.register_next_step_handler(current, acceptFeedback)
 
+# Processing User's Feedback Input.
 def acceptFeedback(message):
   """Accepting a user's feedback"""
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our Feedback Portal! Come back anytime if you have more comments or suggestions for us!")
     return
 
-  if profanity.contains_profanity(message.text):
-    current = bot.send_message(chat_id = message.chat.id, text = "Your input contains inappropriate language. We hope to create a safe and positive environment at UniHow that empowers our users to learn more about NUS so as to better shape their university life. Thank you for understanding! Please key in your input again.\n\n*Warning*\nWe seek your cooperation in keeping our UniHow platform a safe and professional one. Inappropriate use of language can be flagged by community members and may result in a permanent ban.", parse_mode = "Markdown")
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptFeedback)
-    return   
+    return 
   
   if too_short(message):
-    current = bot.send_message(chat_id= message.chat.id, text = "Your input is too short. We would appreciate a more comprehensive and constructive feedback so that we can understand your experience better! Thank you for understanding! Please try again.")
+    current = bot.send_message(chat_id= message.chat.id, text = short_warning)
     bot.register_next_step_handler(current, acceptFeedback)
     return 
 
-  name = message.from_user.last_name + " " + message.from_user.first_name
+  lastName = message.from_user.last_name
+  firstName = message.from_user.first_name
+  if lastName == None:
+    name = firstName
+  else:
+    name = firstName + " " + lastName
+
+  # Post Feedback to private Admin Channel.
   feedback = f"*From*: {name} \n\n*Feedback*: {message.text}"
   bot.send_message(chat_id = message.chat.id, text = "Thank you for your feedback! Your feedback has been successfully recorded. We greatly appreciate your efforts in helping us improve. Come back anytime if you have more comments or suggestions for us!")
   bot.send_message(chat_id = -1001541900629, text = feedback, parse_mode = "Markdown")
-  
+
+# Defining the report command.
 @bot.message_handler(commands=['report'])
 def report(message):
   """Report"""
@@ -426,6 +497,7 @@ def report(message):
   current = bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
 
+# Process User's Report Category Input.
 def filterReportCat(message):
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
@@ -440,10 +512,12 @@ def filterReportCat(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Work in Progress")
     return
 
+  # If User Input is invalid. 
   current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *qna forum* and *livechat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.", parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
   return
 
+# Process User's qID input.
 def acceptReportQNA(message):
 
   if userEnd(message):
@@ -457,6 +531,8 @@ def acceptReportQNA(message):
       name = firstName
     else:
       name = firstName + " " + lastName
+
+    # Retrieve reported QS from database using User Input (qID)
     qID = int(message.text)
     result = collection.find_one({"_id": qID})
     qns = pickle.loads(result["instance"])
@@ -464,15 +540,23 @@ def acceptReportQNA(message):
     bot.send_message(chat_id = -1001541900629, text = reported, parse_mode= "Markdown")
     bot.send_message(chat_id = message.chat.id, text = "Thank you for filing a report. Your contribution has made the UniHow community a safer, more wholesome place!")
 
+  # If User Input was invalid, search returns an error.
   except:
     current = bot.send_message(chat_id = message.chat.id, text = "Your input Question ID is *invalid*, please check that you have keyed in the correct Question ID. Thank you!", parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptReportQNA)
 
-    
-#Defining the livechat command 
+
+# Admin commands, please DO NOT execute when testing our bot. Thanks!
+xylus = int(os.environ['Xylus_ID'])
+jay = int(os.environ['Jay_ID'])
+admin = [xylus, jay]
 @bot.message_handler(commands=['clearDB'])
 def clearDB(message):
   """Clear Database"""
+  if message.from_user.id not in admin:
+    bot.send_message(chat_id = message.chat.id, text = "You do not have access to this command!")
+    return
+  
   collection.delete_many({})
   update_catQCount()
   Question.id_counter = 0
@@ -481,6 +565,16 @@ def clearDB(message):
   messageReply = "Database Cleared! catQCount reset! id_counter reset! broadcast_count reset! "
   bot.reply_to(message, messageReply)
 
+@bot.message_handler(commands=['resettimer'])
+def resettimer(message):
+  if message.from_user.id not in admin:
+    bot.send_message(chat_id = message.chat.id, text = "You do not have access to this command!")
+    return
+    
+  timeTrack.clear()
+  bot.send_message(chat_id = message.chat.id, text = "Timer Reset!")
+  return
+  
 #Define start command in main menu 
 @bot.message_handler(commands=['start'])
 def start(message):
