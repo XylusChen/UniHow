@@ -411,13 +411,13 @@ def acceptFeedback(message):
 def report(message):
   """Report"""
   username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to UniHow's Report Portal! Before we begin, allow us to apologise for any unpleasant experience you may have had while using our bot. Rest assured that your report will be treated seriously and action will be taken against those who have misused our bot!\n\nPlease select the feature that your report pertains to. Send 'qna forum' to report a matter relating to our QnA Forum. Send 'livechat' to report a matter relating to our LiveChat feature. Thank you!"
-  current = bot.send_message(chat_id = message.chat.id, text = messageReply)
+  messageReply = f"Hi {username}! Welcome to UniHow's Report Portal! Before we begin, allow us to apologise for any unpleasant experience you may have had while using our bot. Rest assured that your report will be treated seriously and action will be taken against those who have misused our bot!\n\nPlease select the feature that your report pertains to. Send *qna forum* to report a matter relating to our QnA Forum. Send *livechat* to report a matter relating to our LiveChat feature. To cancel, simply reply *end*. Thank you!"
+  current = bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
 
 def filterReportCat(message):
   if userEnd(message):
-    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our Report Portal! Come back again if you need to make a new report!")
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
     return
 
   if message.text == 'qna forum':
@@ -429,11 +429,16 @@ def filterReportCat(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Work in Progress")
     return
 
-  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are 'qna forum' and 'livechat'. Please check your input again. \n\nIf you do not wish to file a report anymore, please type 'end'.")
+  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *qna forum* and *livechat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.")
   bot.register_next_step_handler(current, filterReportCat)
   return
 
 def acceptReportQNA(message):
+
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
+    return
+
   try:
     name = message.from_user.last_name + " " + message.from_user.first_name
     qID = int(message.text)
@@ -454,7 +459,8 @@ def clearDB(message):
   """Clear Database"""
   collection.delete_many({})
   update_catQCount()
-  messageReply = "Database Cleared! catQCount reset!"
+  Question.id_counter = 0
+  messageReply = "Database Cleared! catQCount reset! id_counter reset!"
   bot.reply_to(message, messageReply)
 
 #Define start command in main menu 
