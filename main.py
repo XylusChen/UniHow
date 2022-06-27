@@ -5,7 +5,6 @@ from telebot import types
 from telebot.types import BotCommand
 import csv
 import emoji
-import pymongo
 from pymongo import MongoClient
 from qna import Question
 import pickle
@@ -13,7 +12,6 @@ from better_profanity import profanity
 import pandas as pd
 import time
 from nospam import UserTimer
-import threading
 
 
 # MongoDB database integration
@@ -47,11 +45,11 @@ def read_csv(csvfilename):
       rows = [row for row in csv.reader(csvfile)]
   return rows
 
-#adding more censored words 
+#Adding more censored words to the blacklist 
 csv_black_list = pd.read_csv('blacklist.csv')
-saved_column = csv_black_list.words #you can also use df['column_name']
-list_words = list(saved_column)
-profanity.add_censor_words(list_words)
+column_to_read_from_csv = csv_black_list.words 
+list_of_additional_words_to_blacklist = list(column_to_read_from_csv)
+profanity.add_censor_words(list_of_additional_words_to_blacklist)
 
 
 #Set the commands in the main menu
@@ -398,8 +396,17 @@ def filterCategoryAnswer(message):
     bot.register_next_step_handler(current, filterCategoryAnswer)
 
 
-# Periodic broadcast message for the bot, every 5 Question posts.
-broadcast_count = 0 
+# Periodic broadcast announcement for the bot, every 5 Question posts. Counter starts at 0. 
+broadcast_dic= {"count" : 0 }
+
+#checks if bot needs to broadcast an announcement. 
+def five_posts(dic) :
+    if dic["count"] >= 5 :
+      dic["count"] = 0 
+      return True 
+      
+
+
 
 # Process User's Answer input.
 def acceptAnswer(message):
@@ -454,15 +461,13 @@ def acceptAnswer(message):
   # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
+  broadcast_dic["count"] += 1
 
-  # Update Broadcast Count
-  global broadcast_count
-  broadcast_count = broadcast_count + 1
-  if broadcast_count == 5:
+  if five_posts(broadcast_dic) : 
     bot.send_message(chat_id = -1001712487991, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
-    broadcast_count = 0
 
-
+  
+ 
 # Defining the feedback command.
 @bot.message_handler(commands=['feedback'])
 def feedback(message):
@@ -579,8 +584,7 @@ def clearDB(message):
   collection.delete_many({})
   update_catQCount()
   Question.id_counter = 0
-  global broadcast_count
-  broadcast_count = 0
+  broadcast_dic["count"] = 0
   messageReply = "Database Cleared! catQCount reset! id_counter reset! broadcast_count reset! "
   bot.reply_to(message, messageReply)
 
