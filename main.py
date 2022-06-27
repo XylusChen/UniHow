@@ -1,6 +1,7 @@
 import os
 from unittest import result
 import telebot
+from telebot import types
 from telebot.types import BotCommand
 import csv
 import emoji
@@ -22,11 +23,19 @@ db = cluster["telegram"]
 collection = db["unihow"] 
 
 # Bot Token
-my_secret = os.environ["MYPRECIOUS"]
+my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
-validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
+validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
+
+# Create Keyboard MarkUp for Category selection
+def createCatMarkup():
+  markup = types.ReplyKeyboardMarkup(row_width = 2, one_time_keyboard = True)
+  for cat in validCats:
+    itembtn = types.KeyboardButton(cat)
+    markup.add(itembtn)
+  return markup
 
 #Read csv file
 def read_csv(csvfilename):
@@ -137,7 +146,10 @@ def askQuestion(message):
   sendCategoryList(message)
   
   last = "To ask a question, all you have to do is send the category code pertaining to the subject your question is about. \n\nFor example, If I wish to ask a question about the College of Humanities and Sciences, I will just type *chs*. If you wish to end this session, just reply with *end*. \n\nPlease note that you may submit 1 question every *3 minutes*."
-  current = bot.send_message(chat_id = message.chat.id, text = last, parse_mode = 'Markdown')
+
+  markup = createCatMarkup()
+  
+  current = bot.send_message(chat_id = message.chat.id, text = last, reply_markup = markup, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, filterCategoryQuestion)
 
 # Process User's category selection.
@@ -315,7 +327,8 @@ def unanswered_quesV2(message):
     return
 
   else : 
-    last = bot.send_message(chat_id = message.chat.id, text = "The above are available categories with unanswered questions. Please reply with the category code to access them. \n\nFor example, if there are unanswered questions in 'medicine', I will respond with *medicine* to access the unanswered questions. To end, simply reply *end*.", parse_mode = 'Markdown')
+    markup = createCatMarkup()
+    last = bot.send_message(chat_id = message.chat.id, text = "The above are available categories with unanswered questions. Please reply with the category code to access them. \n\nFor example, if there are unanswered questions in 'medicine', I will respond with *medicine* to access the unanswered questions. To end, simply reply *end*.", reply_markup = markup, parse_mode = 'Markdown')
     bot.register_next_step_handler(last, filterCategoryAnswer)
 
 
@@ -493,8 +506,14 @@ def acceptFeedback(message):
 def report(message):
   """Report"""
   username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to UniHow's Report Portal! Before we begin, allow us to apologise for any unpleasant experience you may have had while using our bot. Rest assured that your report will be treated seriously and action will be taken against those who have misused our bot!\n\nPlease select the feature that your report pertains to. Send *qna forum* to report a matter relating to our QnA Forum. Send *livechat* to report a matter relating to our LiveChat feature. To cancel, simply reply *end*. Thank you!"
-  current = bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode= 'Markdown')
+  messageReply = f"Hi {username}! Welcome to UniHow's Report Portal! Before we begin, allow us to apologise for any unpleasant experience you may have had while using our bot. Rest assured that your report will be treated seriously and action will be taken against those who have misused our bot!\n\nPlease select the feature that your report pertains to. Send *QnA Forum* to report a matter relating to our QnA Forum. Send *Live Chat* to report a matter relating to our LiveChat feature. To cancel, simply reply *end*. Thank you!"
+  
+  markup = types.ReplyKeyboardMarkup(row_width = 2, one_time_keyboard = True, resize_keyboard = True)
+  itembtn1 = types.KeyboardButton('QnA Forum')
+  itembtn2 = types.KeyboardButton('Live Chat')
+  markup.add(itembtn1, itembtn2)
+  
+  current = bot.send_message(chat_id = message.chat.id, text = messageReply, reply_markup = markup, parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
 
 # Process User's Report Category Input.
@@ -503,17 +522,17 @@ def filterReportCat(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
     return
 
-  if message.text == 'qna forum':
-    current = bot.send_message(chat_id = message.chat.id, text = "You have selected *qna forum*. Please send us the *Question # Number * of the QnA set which you believe a user has behaved inappropriately. \n\nE.g. To report Question #3, simply reply with the digit *3*.", parse_mode = "Markdown")
+  if message.text == 'QnA Forum':
+    current = bot.send_message(chat_id = message.chat.id, text = "You have selected *QnA Forum*. Please send us the *Question # Number * of the QnA set which you believe a user has behaved inappropriately. \n\nE.g. To report Question #3, simply reply with the digit *3*.", parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptReportQNA)
     return
 
-  if message.text == 'livechat':
+  if message.text == 'Live Chat':
     current = bot.send_message(chat_id = message.chat.id, text = "Work in Progress")
     return
 
   # If User Input is invalid. 
-  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *qna forum* and *livechat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.", parse_mode= 'Markdown')
+  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *QnA Forum* and *Live Chat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.", parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
   return
 
