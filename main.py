@@ -22,7 +22,7 @@ db = cluster["telegram"]
 collection = db["unihow"] 
 
 # Bot Token
-my_secret = os.environ["API_KEY3"]
+my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
