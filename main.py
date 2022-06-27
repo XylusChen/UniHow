@@ -231,7 +231,7 @@ def acceptQuestion(message):
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
-    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded! Your question number is *#{Question.id_counter}*. Look out for it on the UniHow QnA Broadcast Channel to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
+    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded! Your question number is *#{Question.id_counter - 1}*. Look out for it on the UniHow QnA Broadcast Channel to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
 #Telling user the current number of unanswered questions
