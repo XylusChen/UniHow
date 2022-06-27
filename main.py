@@ -14,13 +14,16 @@ import time
 from nospam import UserTimer
 import threading
 
+
+
+
 #MongoDB databse for QnA feature 
 cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
 db = cluster["telegram"]
 collection = db["unihow"] 
 
-my_secret = os.environ["MYPRECIOUS"]
-bot = telebot.TeleBot(my_secret)
+#my_secret = os.environ["MYPRECIOUS"]
+bot = telebot.TeleBot("5313286469:AAEDFBdxquQpjSN34najDUdxWmZ5Cer7uUs")
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sp", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu", "Hgeneral", "sep", "noc", "usp", "utcp", "pgp", "utr"]
@@ -42,7 +45,6 @@ def read_csv(csvfilename):
 csv_black_list = pd.read_csv('blacklist.csv')
 saved_column = csv_black_list.words #you can also use df['column_name']
 list_words = list(saved_column)
-print(list_words)
 profanity.add_censor_words(list_words)
 
 
@@ -229,7 +231,7 @@ def acceptQuestion(message):
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
-    bot.send_message(chat_id = message.chat.id, text = "Thank you for your input, you question has been recorded! Do check out our UniHow QnA Broadcast Channel soon to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
+    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded! Your question number is *#{Question.id_counter}*. Look out for it on the UniHow QnA Broadcast Channel to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
 
   
 #Telling user the current number of unanswered questions
@@ -334,6 +336,9 @@ def filterCategoryAnswer(message):
     bot.register_next_step_handler(current, filterCategoryAnswer)
 
 
+#Periodic broadcast message for the bot 
+broadcast_count = 0 
+
 def acceptAnswer(message):
   """Accepting a user's Answer to existing Question"""
   if userEnd(message):
@@ -372,10 +377,16 @@ def acceptAnswer(message):
   pickled_qns = pickle.dumps(qns)
   collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
   catQCount[qns.get_category()] -= 1
-  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out[UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
   bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
+  global broadcast_count
+  broadcast_count = broadcast_count + 1
+  if broadcast_count == 5 :
+    bot.send_message(chat_id = -1001712487991, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    broadcast_count = 0
+    print(broadcast_count)
 
 
 @bot.message_handler(commands=['feedback'])
@@ -421,7 +432,7 @@ def filterReportCat(message):
     return
 
   if message.text == 'qna forum':
-    current = bot.send_message(chat_id = message.chat.id, text = "You have selected 'qna forum'. Please send us the *Question ID* of the QnA set which you believe a user has behaved inappropriately. \n\nE.g. Question #3 has Question ID: 3, reply with the digit 3.", parse_mode = "Markdown")
+    current = bot.send_message(chat_id = message.chat.id, text = "You have selected *qna forum*. Please send us the *Question # Number * of the QnA set which you believe a user has behaved inappropriately. \n\nE.g. To report Question #3, simply reply with the digit *3*.", parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptReportQNA)
     return
 
@@ -429,7 +440,7 @@ def filterReportCat(message):
     current = bot.send_message(chat_id = message.chat.id, text = "Work in Progress")
     return
 
-  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *qna forum* and *livechat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.")
+  current = bot.send_message(chat_id = message.chat.id, text = "Your input was invalid. The only two acceptable inputs are *qna forum* and *livechat*. Please check your input again. \n\nIf you do not wish to file a report anymore, please type *end*.", parse_mode= 'Markdown')
   bot.register_next_step_handler(current, filterReportCat)
   return
 
@@ -440,7 +451,12 @@ def acceptReportQNA(message):
     return
 
   try:
-    name = message.from_user.last_name + " " + message.from_user.first_name
+    lastName = message.from_user.last_name
+    firstName = message.from_user.first_name
+    if lastName == None:
+      name = firstName
+    else:
+      name = firstName + " " + lastName
     qID = int(message.text)
     result = collection.find_one({"_id": qID})
     qns = pickle.loads(result["instance"])
@@ -460,7 +476,9 @@ def clearDB(message):
   collection.delete_many({})
   update_catQCount()
   Question.id_counter = 0
-  messageReply = "Database Cleared! catQCount reset! id_counter reset!"
+  global broadcast_count
+  broadcast_count = 0
+  messageReply = "Database Cleared! catQCount reset! id_counter reset! broadcast_count reset! "
   bot.reply_to(message, messageReply)
 
 #Define start command in main menu 
