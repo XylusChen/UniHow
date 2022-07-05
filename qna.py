@@ -40,3 +40,6 @@ class Question:
   def get_answer(self) :
    first_pair = list(self.answer_x5collection.items())[self.count - 1]
    return first_pair[1]
+
+  def get_report(self) :
+    return self.answer_x5collection
