@@ -15,17 +15,18 @@ from nospam import UserTimer
 
 
 # MongoDB database integration
-db_secret = os.environ['MongoDB_Token']
-cluster = MongoClient(db_secret)
+#db_secret = os.environ['MongoDB_Token']
+cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
 db = cluster["telegram"]
 collection = db["unihow"] 
 
 # Bot Token
-my_secret = os.environ["MYPRECIOUS"]
-bot = telebot.TeleBot(my_secret)
+#my_secret = os.environ["MYPRECIOUS"]
+bot = telebot.TeleBot("5313286469:AAEDFBdxquQpjSN34najDUdxWmZ5Cer7uUs")
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
+
 
 # Create Keyboard MarkUp for Category selection
 def createCatMarkup():
@@ -454,17 +455,20 @@ def acceptAnswer(message):
   pickled_qns = pickle.dumps(qns)
 
   # Update post/document in database.
-  collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answered_by": qns.get_answered_by(), "answer": qns.get_answer()}})
-  catQCount[qns.get_category()] -= 1
+  collection.update_one({"_id": qID_int}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answer_x5collection": qns.get_answerx5collection()}})
+
+  if qns.get_answercount() >= 5 : 
+    catQCount[qns.get_category()] -= 1
+
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
-  bot.send_message(chat_id = -1001712487991, text = broadcast_message, parse_mode= "Markdown")
+  bot.send_message(chat_id = -1001797479601, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
-    bot.send_message(chat_id = -1001712487991, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    bot.send_message(chat_id = -1001797479601, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
 
   
  
@@ -571,9 +575,9 @@ def acceptReportQNA(message):
 
 
 # Admin commands, please DO NOT execute when testing our bot. Thanks!
-xylus = int(os.environ['Xylus_ID'])
-jay = int(os.environ['Jay_ID'])
-admin = [xylus, jay]
+#xylus = int(os.environ['Xylus_ID'])
+#jay = int(os.environ['Jay_ID'])
+admin = [597102858]
 @bot.message_handler(commands=['clearDB'])
 def clearDB(message):
   """Clear Database"""
