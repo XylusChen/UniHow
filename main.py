@@ -1,5 +1,6 @@
 import os
 from unittest import result
+from numpy import integer
 import telebot
 from telebot import types
 from telebot.types import BotCommand
@@ -58,7 +59,8 @@ bot.set_my_commands([
   BotCommand('start', 'Begin your UniHow journey!'),
   BotCommand('gipanel', 'Click here to learn all about NUS programs and accommodation options!'),
   BotCommand('askquestion', 'Send us your questions!'),
-  BotCommand('ansquestion', 'Assist peers with their queries!'),
+  BotCommand('ansquestion', 'See which questions have yet to be answered!'),
+  BotCommand('ansid', 'Answer Questions using the question ID!'),
   BotCommand('livechat', 'Join our Chat Room!'),
   BotCommand('about', 'Find out more about UniHow!'),
   BotCommand('feedback', 'Help us improve! Send us your feedback!'),
@@ -268,6 +270,7 @@ def acceptQuestion(message):
     # Creates post/document, insert into Database.
     post = {"_id": Question.id_counter, "status": qns.get_status(), "from_user": qns.get_from_user(), "category": qns.get_category(), "question": qns.get_question(), "instance": pickled_qns}
     collection.insert_one(post)
+    
     Question.id_counter += 1
 
   finally:
@@ -275,7 +278,9 @@ def acceptQuestion(message):
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
-    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded! Your question number is *#{Question.id_counter - 1}*. Look out for it on the UniHow QnA Broadcast Channel to see if someone has answered your question! [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)", parse_mode= 'Markdown')
+    broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the UniHow Bot and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
+    bot.send_message(chat_id = -1001541561678, text = broadcast_message, parse_mode= 'Markdown')
+    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [Question Broadcast Channel](https://t.me/UniHowQuestionChannel) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [Answer Broadcast Channel](https://t.me/testlink12345testlink). Be sure to look out for it!", parse_mode= 'Markdown')
 
   
 # Python Dictionary, Key: Category, Value: No. of Unanswered Questions.
@@ -305,7 +310,6 @@ def update_catQCount():
 
 update_catQCount()
 
-# Notify user of Categories with unanswered Questions, and how many of them.
 def unanswered_quesV2(message):
 
   if catQCount["updated"] == False:
@@ -331,7 +335,9 @@ def unanswered_quesV2(message):
     bot.register_next_step_handler(last, filterCategoryAnswer)
 
 
-#Defining the Answer Question command 
+
+
+#Answering questions via Category 
 @bot.message_handler(commands=['ansquestion'])
 def ansQuestion(message):
   """Answer a Question! """
@@ -388,7 +394,7 @@ def filterCategoryAnswer(message):
     
     reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
     current = bot.send_message(chat_id = message.chat.id, text = reply)
-    bot.register_next_step_handler(current, acceptAnswer)
+    bot.register_next_step_handler(current, acceptAnswerCategory)
 
   # If User input is invalid. 
   else:
@@ -397,20 +403,8 @@ def filterCategoryAnswer(message):
     bot.register_next_step_handler(current, filterCategoryAnswer)
 
 
-# Periodic broadcast announcement for the bot, every 5 Question posts. Counter starts at 0. 
-broadcast_dic= {"count" : 0 }
 
-#checks if bot needs to broadcast an announcement. 
-def five_posts(dic) :
-    if dic["count"] >= 5 :
-      dic["count"] = 0 
-      return True 
-      
-
-
-
-# Process User's Answer input.
-def acceptAnswer(message):
+def acceptAnswerCategory(message):
   """Accepting a user's Answer to existing Question"""
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
@@ -418,23 +412,23 @@ def acceptAnswer(message):
 
   if containsProfanity(message):
     current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
-    bot.register_next_step_handler(current, acceptAnswer)
+    bot.register_next_step_handler(current, acceptAnswerCategory)
     return
   
   if too_short(message):
     current = bot.send_message(chat_id= message.chat.id, text = short_warning)
-    bot.register_next_step_handler(current, acceptAnswer)
+    bot.register_next_step_handler(current, acceptAnswerCategory)
     return 
   
   if not validInput(message):
     current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, acceptAnswer)
+    bot.register_next_step_handler(current, acceptAnswerCategory)
     return
 
   # Check if User's message is a Reply.
   if not isReply(message):
     current = bot.send_message(chat_id = message.chat.id, text = "We are unable to record your Answer as your input is not a *Reply* to one of our Questions\. Please make sure you are *replying to the message* corresponding to the question you are trying to answer\.", parse_mode = "MarkdownV2")
-    bot.register_next_step_handler(current, acceptAnswer)
+    bot.register_next_step_handler(current, acceptAnswerCategory)
     return
 
   # Retrieve Original Message (contains the Question)
@@ -463,7 +457,128 @@ def acceptAnswer(message):
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
-  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer()}"
+  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
+  bot.send_message(chat_id = -1001797479601, text = broadcast_message, parse_mode= "Markdown")
+  broadcast_dic["count"] += 1
+
+  if five_posts(broadcast_dic) : 
+    bot.send_message(chat_id = -1001797479601, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+
+  
+
+
+#Answering questions via Question ID 
+@bot.message_handler(commands=['ansid'])
+def ansID(message):
+  """Answer a Question! """
+  sendCategoryList(message)
+  username = message.from_user.first_name
+  first = f"Hi {username}! Welcome to *UniHow QnA*! To answer a question, send us the question number. This is indicated by the hashtag at the top of the question. For example, if I want to answer a question tagged #7, I will send *7*. Send the number now to answer the question. To end, simply send *end*."
+  current = bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
+  bot.register_next_step_handler(current, accept_question_number)
+
+  
+def not_number(s):
+    try:
+        float(s)
+        return False
+    except ValueError:
+        return True
+
+STUPIDBOT = {}
+
+# Process User's Category selection.
+def accept_question_number(message):
+  """Accept valid question number from user"""
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
+    return
+
+  if not_number(message.text): 
+    current = bot.send_message(chat_id = message.chat.id, text = "Your input was not a number. Please try again! ")
+    bot.register_next_step_handler(current, accept_question_number)
+    return
+
+    # Search for Question Sets through database. 
+    # Matching Category, Unanswered.
+  QID = int(message.text)
+  results_count = collection.count_documents({"_id": QID})
+  
+    # If there are no available questions
+  if results_count == 0:
+      reply = "Oops! There is no active question tagged with this number right now. Please try again with a valid number. If you do not wish to answer a Question anymore, please type *end*."
+      current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'Markdown')
+      bot.register_next_step_handler(current, accept_question_number)
+      return
+  
+  STUPIDBOT[message.from_user.id] = QID
+  results = collection.find_one({"_id": QID})
+    # Send Question to user, along with Question ID.
+  category = results["category"]
+  question = results["question"]
+  Reply = "*The question you have selected is:* \n\n" + f"*Category*: {category}\n\n" + f"*Question #{QID}*:\n{question}."
+  bot.send_message(chat_id = message.chat.id, text = Reply, parse_mode= 'Markdown')
+  message2 = "To answer this question, just send your answer." 
+  current = bot.send_message(chat_id = message.chat.id, text = message2)
+  bot.register_next_step_handler(current, acceptAnswerID)
+
+
+
+
+# Periodic broadcast announcement for the bot, every 5 Question posts. Counter starts at 0. 
+broadcast_dic= {"count" : 0 }
+
+#checks if bot needs to broadcast an announcement. 
+def five_posts(dic) :
+    if dic["count"] >= 5 :
+      dic["count"] = 0 
+      return True 
+      
+
+
+
+# Process User's Answer input.
+def acceptAnswerID(message):
+  """Accepting a user's Answer to existing Question"""
+  if userEnd(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
+    return
+
+  if containsProfanity(message):
+    current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
+    bot.register_next_step_handler(current, acceptAnswerID)
+    return
+  
+  if too_short(message):
+    current = bot.send_message(chat_id= message.chat.id, text = short_warning)
+    bot.register_next_step_handler(current, acceptAnswerID)
+    return 
+  
+  if not validInput(message):
+    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
+    bot.register_next_step_handler(current, acceptAnswerID)
+    return
+  
+  QID = STUPIDBOT[message.from_user.id]
+
+  # Fetch QS from Database using qID as search filter.
+  result = collection.find_one({"_id": QID})
+  qns = pickle.loads(result["instance"])
+
+  # Update QS instance with Answer and user_id.
+  qns.update_answer(message.from_user.id, message.text)
+  pickled_qns = pickle.dumps(qns)
+
+  # Update post/document in database.
+  collection.update_one({"_id": QID}, {"$set": {"instance": pickled_qns, "status": qns.get_status(), "answer_x5collection": qns.get_answerx5collection()}})
+
+  if qns.get_answercount() >= 5 : 
+    catQCount[qns.get_category()] -= 1
+
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
+
+  # Post completed QS Set to Broadcast Channel
+  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
   bot.send_message(chat_id = -1001797479601, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 

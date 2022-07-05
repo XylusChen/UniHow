@@ -14,7 +14,18 @@ class Question:
     
   def update_answer(self, answered_by, answer):
     self.count += 1
-    self.answer_x5collection[str(answered_by)] = answer
+    list_collection = list(self.answer_x5collection.items())
+
+    for id in list_collection :
+      if id[0] == answered_by :
+        previous = list(self.answer_x5collection[str(answered_by)])
+        next = list(answer)
+        self.answer_x5collection[str(answered_by)] = previous + next
+        break
+
+    else :   
+         self.answer_x5collection[str(answered_by)] = answer
+      
     if self.count >= 5 :
       self.status = True
     
