@@ -15,15 +15,19 @@ import time
 from nospam import UserTimer
 
 
+testchannelQN =  -1001541561678
+testchannelAns = -1001797479601
+
 # MongoDB database integration
-#db_secret = os.environ['MongoDB_Token']
-cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?retryWrites=true&w=majority")
+db_secret = os.environ['MongoDB_Token']
+cluster = MongoClient(db_secret)
 db = cluster["telegram"]
 collection = db["unihow"] 
 
+
 # Bot Token
-#my_secret = os.environ["MYPRECIOUS"]
-bot = telebot.TeleBot("5313286469:AAEDFBdxquQpjSN34najDUdxWmZ5Cer7uUs")
+my_secret = os.environ["MYPRECIOUS"]
+bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
@@ -59,8 +63,8 @@ bot.set_my_commands([
   BotCommand('start', 'Begin your UniHow journey!'),
   BotCommand('gipanel', 'Click here to learn all about NUS programs and accommodation options!'),
   BotCommand('askquestion', 'Send us your questions!'),
-  BotCommand('ansquestion', 'See which questions have yet to be answered!'),
-  BotCommand('ansid', 'Answer Questions using the question ID!'),
+  BotCommand('ansid', 'Answer Questions using the question ID tagged to the question!'),
+  BotCommand('unanswered', 'See which questions have yet to be answered!'),
   BotCommand('livechat', 'Join our Chat Room!'),
   BotCommand('about', 'Find out more about UniHow!'),
   BotCommand('feedback', 'Help us improve! Send us your feedback!'),
@@ -279,7 +283,7 @@ def acceptQuestion(message):
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
     broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the UniHow Bot and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
-    bot.send_message(chat_id = -1001541561678, text = broadcast_message, parse_mode= 'Markdown')
+    bot.send_message(chat_id = testchannelQN, text = broadcast_message, parse_mode= 'Markdown')
     bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [Question Broadcast Channel](https://t.me/UniHowQuestionChannel) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [Answer Broadcast Channel](https://t.me/testlink12345testlink). Be sure to look out for it!", parse_mode= 'Markdown')
 
   
@@ -338,7 +342,7 @@ def unanswered_quesV2(message):
 
 
 #Answering questions via Category 
-@bot.message_handler(commands=['ansquestion'])
+@bot.message_handler(commands=['unanswered'])
 def ansQuestion(message):
   """Answer a Question! """
   username = message.from_user.first_name
@@ -458,11 +462,11 @@ def acceptAnswerCategory(message):
 
   # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
-  bot.send_message(chat_id = -1001797479601, text = broadcast_message, parse_mode= "Markdown")
+  bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
-    bot.send_message(chat_id = -1001797479601, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    bot.send_message(chat_id = testchannelAns, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
 
   
 
@@ -485,7 +489,7 @@ def not_number(s):
     except ValueError:
         return True
 
-STUPIDBOT = {}
+userID_to_QID_dict = {}
 
 # Process User's Category selection.
 def accept_question_number(message):
@@ -502,7 +506,7 @@ def accept_question_number(message):
     # Search for Question Sets through database. 
     # Matching Category, Unanswered.
   QID = int(message.text)
-  results_count = collection.count_documents({"_id": QID})
+  results_count = collection.count_documents({"_id": QID, "status" : False})
   
     # If there are no available questions
   if results_count == 0:
@@ -511,13 +515,13 @@ def accept_question_number(message):
       bot.register_next_step_handler(current, accept_question_number)
       return
   
-  STUPIDBOT[message.from_user.id] = QID
+  userID_to_QID_dict[message.from_user.id] = QID
   results = collection.find_one({"_id": QID})
     # Send Question to user, along with Question ID.
   category = results["category"]
   question = results["question"]
-  Reply = "*The question you have selected is:* \n\n" + f"*Category*: {category}\n\n" + f"*Question #{QID}*:\n{question}."
-  bot.send_message(chat_id = message.chat.id, text = Reply, parse_mode= 'Markdown')
+  message1 = "*The question you have selected is:* \n\n" + f"*Category*: {category}\n\n" + f"*Question #{QID}*:\n{question}."
+  bot.send_message(chat_id = message.chat.id, text = message1, parse_mode= 'Markdown')
   message2 = "To answer this question, just send your answer." 
   current = bot.send_message(chat_id = message.chat.id, text = message2)
   bot.register_next_step_handler(current, acceptAnswerID)
@@ -559,7 +563,7 @@ def acceptAnswerID(message):
     bot.register_next_step_handler(current, acceptAnswerID)
     return
   
-  QID = STUPIDBOT[message.from_user.id]
+  QID = userID_to_QID_dict[message.from_user.id]
 
   # Fetch QS from Database using qID as search filter.
   result = collection.find_one({"_id": QID})
@@ -578,12 +582,12 @@ def acceptAnswerID(message):
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
-  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
-  bot.send_message(chat_id = -1001797479601, text = broadcast_message, parse_mode= "Markdown")
+  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
+  bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
-    bot.send_message(chat_id = -1001797479601, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    bot.send_message(chat_id = testchannelAns, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
 
   
  
@@ -690,9 +694,9 @@ def acceptReportQNA(message):
 
 
 # Admin commands, please DO NOT execute when testing our bot. Thanks!
-#xylus = int(os.environ['Xylus_ID'])
-#jay = int(os.environ['Jay_ID'])
-admin = [597102858]
+xylus = int(os.environ['Xylus_ID'])
+jay = int(os.environ['Jay_ID'])
+admin = [xylus, jay]
 @bot.message_handler(commands=['clearDB'])
 def clearDB(message):
   """Clear Database"""

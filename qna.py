@@ -12,19 +12,15 @@ class Question:
   def update_question(self, question):
     self.question = question
     
+
   def update_answer(self, answered_by, answer):
     self.count += 1
-    list_collection = list(self.answer_x5collection.items())
+    try : 
+      test_item = self.answer_x5collection[str(answered_by)]  
+      self.answer_x5collection[str(answered_by)] = test_item + " \n\n\n " + answer
 
-    for id in list_collection :
-      if id[0] == answered_by :
-        previous = list(self.answer_x5collection[str(answered_by)])
-        next = list(answer)
-        self.answer_x5collection[str(answered_by)] = previous + next
-        break
-
-    else :   
-         self.answer_x5collection[str(answered_by)] = answer
+    except KeyError :
+      self.answer_x5collection[str(answered_by)] = answer
       
     if self.count >= 5 :
       self.status = True
@@ -48,9 +44,8 @@ class Question:
   def get_answercount(self):
     return self.count
 
-  def get_answer(self) :
-   first_pair = list(self.answer_x5collection.items())[self.count - 1]
-   return first_pair[1]
-
   def get_report(self) :
     return self.answer_x5collection
+
+  def get_answer(self, userID) :
+    return self.answer_x5collection[str(userID)]
