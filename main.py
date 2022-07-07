@@ -14,7 +14,7 @@ import pandas as pd
 import time
 from nospam import UserTimer
 
-
+#Channel ID for testing (QnA)
 testchannelQN =  -1001541561678
 testchannelAns = -1001797479601
 
@@ -31,6 +31,14 @@ bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
+
+
+@bot.message_handler(regexp = "End",)
+def no_end(message):
+	bot.send_message(chat_id = message.chat.id, text = "There is no action to end currently." )
+
+
+
 
 
 # Create Keyboard MarkUp for Category selection
@@ -99,17 +107,6 @@ def too_short(message):
     return False 
 short_warning = "Your input is too short. We hope to create an environment where our users will ask questions, provide answers or feedback that are constructive and will be of value to everyone. Thank you for understanding! Please key in your input again."
     
-# Check if user input is valid: user input should not contain Bot Command
-def validInput(message):
-  entities = message.entities
-  if entities:
-    for entity in entities:
-      if entity.type == "bot_command":
-        return False
-  else:
-    return True
-invalidInput_warning = "Your input should not contain any Bot Commands, please try again!\n\nIf you do not wish to submit a Question anymore, please type 'end' after this message."
-
 # Check if user input is a valid Category
 def validCategory(message):
   userInput = message.text
@@ -170,11 +167,6 @@ def filterCategoryQuestion(message):
     bot.register_next_step_handler(current, filterCategoryQuestion)
     return
   
-  if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, filterCategoryQuestion)
-    return
-
   category = message.text
   # If User input is Valid.
   if validCategory(message):
@@ -237,11 +229,6 @@ def acceptQuestion(message):
     bot.register_next_step_handler(current, acceptQuestion)
     return 
 
-  if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, acceptQuestion)
-    return
-
   # Retrieve QS instance from category_dic
   # Updates QS instance with question (user input, type: String)
   qns = fetch_question(message)
@@ -282,7 +269,7 @@ def acceptQuestion(message):
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
-    broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the UniHow Bot and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
+    broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the [UniHow Bot](https://t.me/unihow_bot) and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
     bot.send_message(chat_id = testchannelQN, text = broadcast_message, parse_mode= 'Markdown')
     bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [Question Broadcast Channel](https://t.me/UniHowQuestionChannel) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [Answer Broadcast Channel](https://t.me/testlink12345testlink). Be sure to look out for it!", parse_mode= 'Markdown')
 
@@ -365,11 +352,6 @@ def filterCategoryAnswer(message):
     bot.register_next_step_handler(current, filterCategoryAnswer)
     return
   
-  if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, filterCategoryAnswer)
-    return
-
   category = message.text
   # If User input is Valid. 
   if validCategory(message):
@@ -423,11 +405,6 @@ def acceptAnswerCategory(message):
     current = bot.send_message(chat_id= message.chat.id, text = short_warning)
     bot.register_next_step_handler(current, acceptAnswerCategory)
     return 
-  
-  if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, acceptAnswerCategory)
-    return
 
   # Check if User's message is a Reply.
   if not isReply(message):
@@ -466,7 +443,7 @@ def acceptAnswerCategory(message):
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
-    bot.send_message(chat_id = testchannelAns, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    bot.send_message(chat_id = testchannelAns, text = five_posts_announcement, parse_mode= "Markdown")
 
   
 
@@ -475,23 +452,24 @@ def acceptAnswerCategory(message):
 @bot.message_handler(commands=['ansid'])
 def ansID(message):
   """Answer a Question! """
-  sendCategoryList(message)
   username = message.from_user.first_name
   first = f"Hi {username}! Welcome to *UniHow QnA*! To answer a question, send us the question number. This is indicated by the hashtag at the top of the question. For example, if I want to answer a question tagged #7, I will send *7*. Send the number now to answer the question. To end, simply send *end*."
   current = bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, accept_question_number)
 
-  
+#checks if user responds with a number
 def not_number(s):
     try:
         float(s)
         return False
     except ValueError:
         return True
+not_number_text = "Your input was not a number. Please try again! "
 
+# key : user ID, value: Question ID 
 userID_to_QID_dict = {}
 
-# Process User's Category selection.
+# accept question number from user
 def accept_question_number(message):
   """Accept valid question number from user"""
   if userEnd(message):
@@ -499,12 +477,12 @@ def accept_question_number(message):
     return
 
   if not_number(message.text): 
-    current = bot.send_message(chat_id = message.chat.id, text = "Your input was not a number. Please try again! ")
+    current = bot.send_message(chat_id = message.chat.id, text = not_number_text)
     bot.register_next_step_handler(current, accept_question_number)
     return
 
     # Search for Question Sets through database. 
-    # Matching Category, Unanswered.
+    # Matching question ID, Unanswered.
   QID = int(message.text)
   results_count = collection.count_documents({"_id": QID, "status" : False})
   
@@ -515,6 +493,7 @@ def accept_question_number(message):
       bot.register_next_step_handler(current, accept_question_number)
       return
   
+  #Store QID based on user ID
   userID_to_QID_dict[message.from_user.id] = QID
   results = collection.find_one({"_id": QID})
     # Send Question to user, along with Question ID.
@@ -537,6 +516,7 @@ def five_posts(dic) :
     if dic["count"] >= 5 :
       dic["count"] = 0 
       return True 
+five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */report*."
       
 
 
@@ -558,11 +538,7 @@ def acceptAnswerID(message):
     bot.register_next_step_handler(current, acceptAnswerID)
     return 
   
-  if not validInput(message):
-    current = bot.send_message(chat_id = message.chat.id, text = invalidInput_warning)
-    bot.register_next_step_handler(current, acceptAnswerID)
-    return
-  
+  #Retrieve QID based on user ID
   QID = userID_to_QID_dict[message.from_user.id]
 
   # Fetch QS from Database using qID as search filter.
@@ -587,7 +563,7 @@ def acceptAnswerID(message):
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
-    bot.send_message(chat_id = testchannelAns, text = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the UniHow bot chat and send */report*.", parse_mode= "Markdown")
+    bot.send_message(chat_id = testchannelAns, text = five_posts_announcement, parse_mode= "Markdown")
 
   
  
