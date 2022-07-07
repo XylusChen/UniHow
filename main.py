@@ -32,11 +32,19 @@ bot = telebot.TeleBot(my_secret)
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
 
+#To post the full category name instead of just the code itself. 
+code_to_cat_dict = {'chs': "College of Humanities and Sciences 📕",  'biz' : "NUS Business School 💼", 'computing' : "School of Computing 💻" , 'medicine': "Yong Loo Lin School of Medicine 🩺" , 'dentistry': "Faculty of Dentistry 🦷", 'cde': "College of Design and Engineering 🎨🔧", 'law': "Faculty of Law 🏛️", 'nursing' :"Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine 💉", 'pharmacy':  "Department of Pharmacy 💊", 'music' : "Yong Siew Toh Conservatory of Music 🎵", 'UGgeneral' : "General Enquires for Undegraduate Programmes ☀️", 'ddp' : "Double Degree Programmes 🗞️🗞️", 'dmp': "Double Major Programmes 📜📜", 'cdp' : "Concurrent Degree Programmes 🗞️♾️🗞️", 'sep': "Student Exchange Programme 💱" ,'noc' : "NUS Overseas Colleges ✈️" ,'usp' : "University Scholars Programme 👨‍🎓" ,'utcp' :"University Town College Programme 🏫", 'rvrc' :  "Ridge View Residential College 🏘️", 'jd' : "Joint Degree Programmes 🏫🗞️🏫", 'ptp' : "Part Time Programmes 🗞️🕣", 'mp' : "Minor Programmes 📜", 'SPgeneral' : "General Enquiries for Special Undergraduate Programmes ☀️", 'eusoff' : "Eusoff Hall 🏡", 'kr' : "Kent Ridge Hall 🏡", 'ke7' : "King Edward VII Hall 🏡", 'raffles' : "Raffles Hall 🏡", 'sheares' : "Sheares Hall 🏡", 'temasek' : "Temasek Hall 🏡", 'lighthouse' : "LightHouse 🏠", 'pioneer' : "Pioneer House 🏠", 'rvrc' : "Ridge View Residential College 🏘️", 'capt' : "College of Alice & Peter Tan Residential College 🏘️", 'rc4' : "Residential College 4 🏘️", 'tembusu' : "Tembusu College 🏘️", 'pgp' : "PGP Residence 🏢", 'utr' : "UTown Residence 🏢", 'Hgeneral':  "General Enquiries for NUS Housing ☀️"}
 
+
+#In case user tries to end when there is nothing to end. 
 @bot.message_handler(regexp = "End",)
 def no_end(message):
-	bot.send_message(chat_id = message.chat.id, text = "There is no action to end currently." )
+	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
 
+#In case user tries to go back when they have not entered a session. 
+@bot.message_handler(regexp = "back",)
+def no_back(message):
+	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
 
 
 
@@ -89,6 +97,14 @@ def sendCategoryList(message):
   bot.send_message(chat_id = message.chat.id, text = housing, parse_mode = 'MarkdownV2')
   return
 
+
+def go_back(message) :
+  if message.text in ["back", "Back", "BACK"] :
+    return True 
+  
+  else: 
+    return False 
+go_back_message = "You have requested to go back. Please make your selection again."
 
 # Check if user wishes to terminate QnA Session
 def userEnd(message):
@@ -170,13 +186,13 @@ def filterCategoryQuestion(message):
   category = message.text
   # If User input is Valid.
   if validCategory(message):
-    reply = f"You have selected *{message.text}*\. Please type your question after this message\."
+    reply = f"You have selected *{message.text}*. Please type your question after this message. To go back and select a different category, just send *back*."
     user = message.from_user.id
 
     # Upon successful category selection, new QS instance is initialized. 
     # Stored as value in dictionary with User_ID as key.
     category_dic[user] = Question(user, category)
-    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'MarkdownV2')
+    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = 'Markdown')
     bot.register_next_step_handler(current, acceptQuestion)
 
   # If User input is Invalid.
@@ -202,6 +218,11 @@ timeTrack = {}
 # Process User's Question input.
 def acceptQuestion(message):
   """Accepting a user's Question"""
+
+  if go_back(message) : 
+    current = bot.send_message(chat_id = message.chat.id, text = go_back_message, parse_mode= "Markdown")
+    bot.register_next_step_handler(current, filterCategoryQuestion)
+    return
 
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
@@ -269,7 +290,8 @@ def acceptQuestion(message):
     user = message.from_user.id
     timeTrack[user] = UserTimer(user, time.time())
     catQCount[qns.get_category()] += 1
-    broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the [UniHow Bot](https://t.me/unihow_bot) and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
+    
+    broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the [UniHow Bot](https://t.me/unihow_bot) and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
     bot.send_message(chat_id = testchannelQN, text = broadcast_message, parse_mode= 'Markdown')
     bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [Question Broadcast Channel](https://t.me/UniHowQuestionChannel) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [Answer Broadcast Channel](https://t.me/testlink12345testlink). Be sure to look out for it!", parse_mode= 'Markdown')
 
@@ -342,7 +364,6 @@ def ansQuestion(message):
 # Process User's Category selection.
 def filterCategoryAnswer(message):
   """Check validity of user's Category input"""
-
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
@@ -378,8 +399,8 @@ def filterCategoryAnswer(message):
       final = f"{q_string}\n\n{id_text}"
       bot.send_message(chat_id = message.chat.id, text = final, parse_mode = "Markdown")
     
-    reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! Thank you!"
-    current = bot.send_message(chat_id = message.chat.id, text = reply)
+    reply = "To answer a question, please reply the corresponding message with your answer using Telegram's reply function! To go back and select another question, simply send *back*. Thank you!"
+    current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode= "Markdown")
     bot.register_next_step_handler(current, acceptAnswerCategory)
 
   # If User input is invalid. 
@@ -392,6 +413,13 @@ def filterCategoryAnswer(message):
 
 def acceptAnswerCategory(message):
   """Accepting a user's Answer to existing Question"""
+
+  if go_back(message) : 
+    current= bot.send_message(chat_id = message.chat.id, text = go_back_message, parse_mode= "Markdown")
+    bot.register_next_step_handler(current, filterCategoryAnswer)
+    return
+
+
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
@@ -438,7 +466,7 @@ def acceptAnswerCategory(message):
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
-  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
+  broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
   bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 
@@ -501,8 +529,8 @@ def accept_question_number(message):
   question = results["question"]
   message1 = "*The question you have selected is:* \n\n" + f"*Category*: {category}\n\n" + f"*Question #{QID}*:\n{question}."
   bot.send_message(chat_id = message.chat.id, text = message1, parse_mode= 'Markdown')
-  message2 = "To answer this question, just send your answer." 
-  current = bot.send_message(chat_id = message.chat.id, text = message2)
+  message2 = "To answer this question, just send your answer. To end, just send *end*. To go back and select a different question, just send *back*." 
+  current = bot.send_message(chat_id = message.chat.id, text = message2, parse_mode= "Markdown")
   bot.register_next_step_handler(current, acceptAnswerID)
 
 
@@ -524,6 +552,12 @@ five_posts_announcement = "Dear users, thank you for using UniHow. We hope that 
 # Process User's Answer input.
 def acceptAnswerID(message):
   """Accepting a user's Answer to existing Question"""
+
+  if go_back(message) : 
+    current = bot.send_message(chat_id = message.chat.id, text = go_back_message, parse_mode= "Markdown")
+    bot.register_next_step_handler(current, accept_question_number)
+    return
+
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
@@ -558,7 +592,7 @@ def acceptAnswerID(message):
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
-  broadcast_message = f"*Category*: {qns.get_category()}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
+  broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
   bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 

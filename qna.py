@@ -17,7 +17,7 @@ class Question:
     self.count += 1
     try : 
       test_item = self.answer_x5collection[str(answered_by)]  
-      self.answer_x5collection[str(answered_by)] = test_item + " \n\n\n " + answer
+      self.answer_x5collection[str(answered_by)] = test_item + "\n\n\n" + answer
 
     except KeyError :
       self.answer_x5collection[str(answered_by)] = answer
