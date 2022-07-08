@@ -36,17 +36,15 @@ validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "
 code_to_cat_dict = {'chs': "College of Humanities and Sciences 📕",  'biz' : "NUS Business School 💼", 'computing' : "School of Computing 💻" , 'medicine': "Yong Loo Lin School of Medicine 🩺" , 'dentistry': "Faculty of Dentistry 🦷", 'cde': "College of Design and Engineering 🎨🔧", 'law': "Faculty of Law 🏛️", 'nursing' :"Alice Lee Centre for Nursing Studies & Yong Loo Lin School of Medicine 💉", 'pharmacy':  "Department of Pharmacy 💊", 'music' : "Yong Siew Toh Conservatory of Music 🎵", 'UGgeneral' : "General Enquires for Undegraduate Programmes ☀️", 'ddp' : "Double Degree Programmes 🗞️🗞️", 'dmp': "Double Major Programmes 📜📜", 'cdp' : "Concurrent Degree Programmes 🗞️♾️🗞️", 'sep': "Student Exchange Programme 💱" ,'noc' : "NUS Overseas Colleges ✈️" ,'usp' : "University Scholars Programme 👨‍🎓" ,'utcp' :"University Town College Programme 🏫", 'rvrc' :  "Ridge View Residential College 🏘️", 'jd' : "Joint Degree Programmes 🏫🗞️🏫", 'ptp' : "Part Time Programmes 🗞️🕣", 'mp' : "Minor Programmes 📜", 'SPgeneral' : "General Enquiries for Special Undergraduate Programmes ☀️", 'eusoff' : "Eusoff Hall 🏡", 'kr' : "Kent Ridge Hall 🏡", 'ke7' : "King Edward VII Hall 🏡", 'raffles' : "Raffles Hall 🏡", 'sheares' : "Sheares Hall 🏡", 'temasek' : "Temasek Hall 🏡", 'lighthouse' : "LightHouse 🏠", 'pioneer' : "Pioneer House 🏠", 'rvrc' : "Ridge View Residential College 🏘️", 'capt' : "College of Alice & Peter Tan Residential College 🏘️", 'rc4' : "Residential College 4 🏘️", 'tembusu' : "Tembusu College 🏘️", 'pgp' : "PGP Residence 🏢", 'utr' : "UTown Residence 🏢", 'Hgeneral':  "General Enquiries for NUS Housing ☀️"}
 
 
-#In case user tries to end when there is nothing to end. 
+#In case user tries to end when there is no activity in  progress. 
 @bot.message_handler(regexp = "End",)
 def no_end(message):
 	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
 
-#In case user tries to go back when they have not entered a session. 
+#In case user tries to go back when there is no activity in progress. 
 @bot.message_handler(regexp = "back",)
 def no_back(message):
 	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
-
-
 
 
 # Create Keyboard MarkUp for Category selection
@@ -79,8 +77,8 @@ bot.set_my_commands([
   BotCommand('start', 'Begin your UniHow journey!'),
   BotCommand('gipanel', 'Click here to learn all about NUS programs and accommodation options!'),
   BotCommand('askquestion', 'Send us your questions!'),
-  BotCommand('ansid', 'Answer Questions using the question ID tagged to the question!'),
-  BotCommand('unanswered', 'See which questions have yet to be answered!'),
+  BotCommand('unanswered', 'View unanswered questions in our QnA Forum!'),
+  BotCommand('ansid', "Answer specific Questions using it's question ID!"),
   BotCommand('livechat', 'Join our Chat Room!'),
   BotCommand('about', 'Find out more about UniHow!'),
   BotCommand('feedback', 'Help us improve! Send us your feedback!'),
@@ -104,6 +102,7 @@ def go_back(message) :
   
   else: 
     return False 
+
 go_back_message = "You have requested to go back. Please make your selection again."
 
 # Check if user wishes to terminate QnA Session
@@ -174,6 +173,10 @@ def askQuestion(message):
 def filterCategoryQuestion(message):
   """Check validity of user's Category input"""
 
+  if go_back(message):
+    bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
+    return
+  
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you have a question for us!")
     return
@@ -219,8 +222,9 @@ timeTrack = {}
 def acceptQuestion(message):
   """Accepting a user's Question"""
 
-  if go_back(message) : 
-    current = bot.send_message(chat_id = message.chat.id, text = go_back_message, parse_mode= "Markdown")
+  if go_back(message): 
+    markup = createCatMarkup()
+    current = bot.send_message(chat_id = message.chat.id, text = go_back_message, reply_markup = markup, parse_mode= "Markdown")
     bot.register_next_step_handler(current, filterCategoryQuestion)
     return
 
@@ -348,8 +352,7 @@ def unanswered_quesV2(message):
     bot.register_next_step_handler(last, filterCategoryAnswer)
 
 
-
-
+    
 #Answering questions via Category 
 @bot.message_handler(commands=['unanswered'])
 def ansQuestion(message):
@@ -364,7 +367,8 @@ def ansQuestion(message):
 # Process User's Category selection.
 def filterCategoryAnswer(message):
   """Check validity of user's Category input"""
-  if userEnd(message):
+  
+  if userEnd(message) or go_back(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
 
@@ -387,7 +391,8 @@ def filterCategoryAnswer(message):
     # If there are no available questions
     if results_count == 0:
       reply = "Oops! There are no available questions of this category at the moment! Please try again later! \n\nIf you wish to select a new Category, please respond with the new Category code after this message. If you do not wish to answer a Question anymore, please type 'end'."
-      current = bot.send_message(chat_id = message.chat.id, text = reply)
+      markup = createCatMarkup()
+      current = bot.send_message(chat_id = message.chat.id, text = reply, reply_markup = markup)
       bot.register_next_step_handler(current, filterCategoryAnswer)
       return
 
@@ -414,11 +419,11 @@ def filterCategoryAnswer(message):
 def acceptAnswerCategory(message):
   """Accepting a user's Answer to existing Question"""
 
-  if go_back(message) : 
-    current= bot.send_message(chat_id = message.chat.id, text = go_back_message, parse_mode= "Markdown")
+  if go_back(message):
+    markup = createCatMarkup()
+    current= bot.send_message(chat_id = message.chat.id, text = go_back_message, reply_markup = markup, parse_mode= "Markdown")
     bot.register_next_step_handler(current, filterCategoryAnswer)
     return
-
 
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
@@ -466,22 +471,20 @@ def acceptAnswerCategory(message):
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
-  broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{message.text}"
+  broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
   bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
   broadcast_dic["count"] += 1
 
   if five_posts(broadcast_dic) : 
     bot.send_message(chat_id = testchannelAns, text = five_posts_announcement, parse_mode= "Markdown")
 
-  
-
-
+    
 #Answering questions via Question ID 
 @bot.message_handler(commands=['ansid'])
 def ansID(message):
   """Answer a Question! """
   username = message.from_user.first_name
-  first = f"Hi {username}! Welcome to *UniHow QnA*! To answer a question, send us the question number. This is indicated by the hashtag at the top of the question. For example, if I want to answer a question tagged #7, I will send *7*. Send the number now to answer the question. To end, simply send *end*."
+  first = f"Hi {username}! Welcome to *UniHow QnA*! To answer a question, please send us the question ID. This is indicated by the hashtag at the top of the question. For example, if I want to answer a question tagged #7, I will send *7*. Send the number now to answer the question. To end, simply send *end*."
   current = bot.send_message(chat_id = message.chat.id, text = first, parse_mode = 'Markdown')
   bot.register_next_step_handler(current, accept_question_number)
 
@@ -500,7 +503,7 @@ userID_to_QID_dict = {}
 # accept question number from user
 def accept_question_number(message):
   """Accept valid question number from user"""
-  if userEnd(message):
+  if userEnd(message) or go_back(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our QnA forum! Come back anytime if you want to answer more questions!")
     return
 
@@ -529,25 +532,10 @@ def accept_question_number(message):
   question = results["question"]
   message1 = "*The question you have selected is:* \n\n" + f"*Category*: {code_to_cat_dict[category]}\n\n" + f"*Question #{QID}*:\n{question}."
   bot.send_message(chat_id = message.chat.id, text = message1, parse_mode= 'Markdown')
-  message2 = "To answer this question, just send your answer. To end, just send *end*. To go back and select a different question, just send *back*." 
+  message2 = "To answer this question, send us your answer. To end, just send *end*. To go back and select a different question, just send *back*." 
   current = bot.send_message(chat_id = message.chat.id, text = message2, parse_mode= "Markdown")
   bot.register_next_step_handler(current, acceptAnswerID)
-
-
-
-
-# Periodic broadcast announcement for the bot, every 5 Question posts. Counter starts at 0. 
-broadcast_dic= {"count" : 0 }
-
-#checks if bot needs to broadcast an announcement. 
-def five_posts(dic) :
-    if dic["count"] >= 5 :
-      dic["count"] = 0 
-      return True 
-five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */report*."
       
-
-
 
 # Process User's Answer input.
 def acceptAnswerID(message):
@@ -591,6 +579,7 @@ def acceptAnswerID(message):
 
   bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
 
+  
   # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{QID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
   bot.send_message(chat_id = testchannelAns, text = broadcast_message, parse_mode= "Markdown")
@@ -599,8 +588,17 @@ def acceptAnswerID(message):
   if five_posts(broadcast_dic) : 
     bot.send_message(chat_id = testchannelAns, text = five_posts_announcement, parse_mode= "Markdown")
 
-  
- 
+# Periodic broadcast announcement for the bot, every 5 Question posts. Counter starts at 0. 
+broadcast_dic= {"count" : 0 }
+
+#checks if bot needs to broadcast an announcement. 
+def five_posts(dic) :
+    if dic["count"] >= 5 :
+      dic["count"] = 0 
+      return True 
+five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */report*."
+
+
 # Defining the feedback command.
 @bot.message_handler(commands=['feedback'])
 def feedback(message):
@@ -613,7 +611,7 @@ def feedback(message):
 # Processing User's Feedback Input.
 def acceptFeedback(message):
   """Accepting a user's feedback"""
-  if userEnd(message):
+  if userEnd(message) or go_back(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our Feedback Portal! Come back anytime if you have more comments or suggestions for us!")
     return
 
@@ -636,7 +634,7 @@ def acceptFeedback(message):
 
   # Post Feedback to private Admin Channel.
   feedback = f"*From*: {name} \n\n*Feedback*: {message.text}"
-  bot.send_message(chat_id = message.chat.id, text = "Thank you for your feedback! Your feedback has been successfully recorded. We greatly appreciate your efforts in helping us improve. Come back anytime if you have more comments or suggestions for us!")
+  bot.send_message(chat_id = message.chat.id, text = "Thank you for your feedback! Your input has been successfully recorded. We greatly appreciate your efforts in helping us improve. Come back anytime if you have more comments or suggestions for us!")
   bot.send_message(chat_id = -1001541900629, text = feedback, parse_mode = "Markdown")
 
 # Defining the report command.
@@ -656,7 +654,7 @@ def report(message):
 
 # Process User's Report Category Input.
 def filterReportCat(message):
-  if userEnd(message):
+  if userEnd(message) or go_back(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
     return
 
@@ -676,7 +674,16 @@ def filterReportCat(message):
 
 # Process User's qID input.
 def acceptReportQNA(message):
-
+  
+  if go_back(message) : 
+    markup = types.ReplyKeyboardMarkup(row_width = 2, one_time_keyboard = True, resize_keyboard = True)
+    itembtn1 = types.KeyboardButton('QnA Forum')
+    itembtn2 = types.KeyboardButton('Live Chat')
+    markup.add(itembtn1, itembtn2)
+    current = bot.send_message(chat_id = message.chat.id, text = go_back_message, reply_markup = markup, parse_mode= "Markdown")
+    bot.register_next_step_handler(current, filterReportCat)
+    return
+    
   if userEnd(message):
     bot.send_message(chat_id = message.chat.id, text = "Thank you for using our report portal and for keeping the UniHow community safe! Come back again if you need to make a new report!")
     return
@@ -846,7 +853,6 @@ def pharmacy(message):
 def music(message):
   """NUS Music"""
   generateReply('music', 'faculties.csv', message)
-
 
   
 #Define menu for Special Programmes 
