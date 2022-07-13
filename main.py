@@ -26,7 +26,7 @@ collection = db["unihow"]
 
 
 # Bot Token
-my_secret = os.environ["MYPRECIOUS"]
+my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
@@ -37,14 +37,27 @@ code_to_cat_dict = {'chs': "College of Humanities and Sciences 📕",  'biz' : "
 
 
 #In case user tries to end when there is no activity in  progress. 
-@bot.message_handler(regexp = "End",)
+@bot.message_handler(regexp = "End")
 def no_end(message):
-	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
+  if len(message.text) > 3:
+    return
+  bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do.")
 
 #In case user tries to go back when there is no activity in progress. 
-@bot.message_handler(regexp = "back",)
+@bot.message_handler(regexp = "back")
 def no_back(message):
-	bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
+
+  # Embedded command handler for /feedback command.
+  if message.text == "/feedback":
+    """Feedback"""
+    username = message.from_user.first_name
+    messageReply = f"Hi {username}! Welcome to UniHow's Feedback Portal! You may send us your feedback after this message. Thank you!"
+    current = bot.send_message(chat_id = message.chat.id, text = messageReply)
+    bot.register_next_step_handler(current, acceptFeedback)
+
+  if len(message.text) > 4:
+    return
+  bot.send_message(chat_id = message.chat.id, text = "You are already at the main menu. Please use the menu to select what you want to do. " )
 
 
 # Create Keyboard MarkUp for Category selection
@@ -599,15 +612,6 @@ def five_posts(dic) :
 five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */report*."
 
 
-# Defining the feedback command.
-@bot.message_handler(commands=['feedback'])
-def feedback(message):
-  """Feedback"""
-  username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to UniHow's Feedback Portal! You may send us your feedback after this message. Thank you!"
-  current = bot.send_message(chat_id = message.chat.id, text = messageReply)
-  bot.register_next_step_handler(current, acceptFeedback)
-
 # Processing User's Feedback Input.
 def acceptFeedback(message):
   """Accepting a user's feedback"""
@@ -743,12 +747,12 @@ def resettimer(message):
 def start(message):
   """Welcome new User!"""
   username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to UniHow! \n\n/gipanel to learn more about programs and accomodation options within NUS ! \n\n/askquestion if you want to ask a question! \n\n/ansquestion if you want to answer a question! \n\n/livechat to engage in a real-time conversation with a University senior or Professor!"
+  messageReply = f"Hi {username}! Welcome to UniHow! \n\n/gipanel to learn more about programs and accomodation options within NUS ! \n\n/askquestion if you want to ask a question! \n\n/unanswered to check out available questions to answer! \n\n/ansid to answer a question using its unique Question ID! \n\n/view to browse and search for Question Sets! \n\n/livechat to engage in a real-time conversation with a University senior or Professor!"
   bot.reply_to(message, messageReply)
 
   bot.send_message(chat_id = message.chat.id, text = "We urge all users to behave responsibly on UniHow, especially when using our QnA Forum and LiveChat features. It takes a communal effort to keep this platform *safe* and *professional* so that everyone can use it with a peace of mind. If you notice any signs of misconduct or inappropriacy, please let us know by using our /report function, more detailed instructions will follow.", parse_mode = "Markdown")
 
-  bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to the [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA) to gain access to our channel where you can find answers to the most pressing questions that our users are asking about NUS!", parse_mode= 'Markdown')
+  bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to our [UniHow QnA Question Channel](https://t.me/UniHowQnA) to stay updated on the latest, most pressing questions that fellow peers are asking about NUS! Also subscribe to our [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA) where you can find answers and responses to these questions!", parse_mode= 'Markdown')
 
 #Define gipanel command in main menu 
 @bot.message_handler(commands=['gipanel'])
