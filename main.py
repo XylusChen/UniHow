@@ -13,7 +13,8 @@ from better_profanity import profanity
 import pandas as pd
 import time
 from nospam import UserTimer
-from game import user_ans_dic, get_operator, get_answer, startgame, gameAnswer
+from game import startgame
+from chatbot import startchat, chatloop, endchat, stopsearch, reset
 
 #Channel ID for testing (QnA)
 testchannelQN =  -1001541561678
@@ -29,7 +30,31 @@ collection = db["unihow"]
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
+# Math Game
 bot.register_message_handler(startgame, commands = ['bored'], pass_bot = True)
+
+whitelist = ['end', 'back']
+def filterfunc(message):
+  if message.text.lower() in whitelist:
+    return False
+
+  if not message.entities:
+    return True
+
+  for entity in message.entities:
+    if entity.type == "bot_command":
+      return False
+
+  return True
+
+
+# Live Chat Feature
+bot.register_message_handler(startchat, commands = ['livechat'])
+bot.register_message_handler(chatloop, content_types = ['text'], func = filterfunc)
+bot.register_message_handler(endchat, commands = ['endchat'])
+bot.register_message_handler(stopsearch, commands = ['stopsearch'])
+bot.register_message_handler(reset, commands = ['reset'])
+
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
@@ -620,7 +645,7 @@ five_posts_announcement = "Dear users, thank you for using UniHow. We hope that 
 def browse(message):
   """Viewing Portal"""
   username = message.from_user.first_name
-  first = f"Hi {username}! Welcome to *UniHow QnA Browsing Portal*! \n\n Our browsing portal allows you to conduct targeted searches for specific Question Sets using its unique Question ID or via Category and keywords. To begin, please select your preferred search and filter method. \n\nIf you wish to leave the browsing portal, please send *end*."
+  first = f"Hi {username}! Welcome to *UniHow QnA Browsing Portal*! \n\nOur browsing portal allows you to conduct targeted searches for specific Question Sets using its unique Question ID or via Category and keywords. To begin, please select your preferred search and filter method. \n\nIf you wish to leave the browsing portal, please send *end*."
   
   markup = types.ReplyKeyboardMarkup(row_width = 2, one_time_keyboard = True, resize_keyboard = True)
   itembtn1 = types.KeyboardButton('Question ID')
@@ -643,7 +668,7 @@ def filterSearchMethod(message):
     return  
 
   if message.text == "Question ID":
-    current = bot.send_message(chat_id = message.chat.id, text = "You have selected *Question ID*. \n\n To continue, please send us the Question ID of the question set you wish to view. For example, if I want to view Question Set tagged #7, I will send *7*. Send the number now to view the Question Set. \n\nIf you wish to change your searching method, please send *back*.", parse_mode = "Markdown")
+    current = bot.send_message(chat_id = message.chat.id, text = "You have selected *Question ID*. \n\nTo continue, please send us the Question ID of the question set you wish to view. For example, if I want to view Question Set tagged #7, I will send *7*. Send the number now to view the Question Set. \n\nIf you wish to change your searching method, please send *back*.", parse_mode = "Markdown")
     bot.register_next_step_handler(current, searchByQID)
     return
 
@@ -757,7 +782,7 @@ def searchByCatKey(message):
   user_cat_dic[message.from_user.id] = category
   # If User input is Valid. 
   if validCategory(message):
-    reply = f"You have selected *{code_to_cat_dict[category]}*. \n\nTo continue, please send us the keyword(s) that you wish to further narrow your search by. If you intend to filter your results with more than one keyword, please leave a space between each keyword. \n\n For example, if I wish to input the keyword *coding*, I will send 'coding'. If I wish to input the keywords *workload* and *module*, I will send 'workload module'. \n\nIf you do not wish to input any keywords, please send 'NA'.\n\n To choose a new category, send *back*. To leave the browsing portal, send *end*."
+    reply = f"You have selected *{code_to_cat_dict[category]}*. \n\nTo continue, please send us the keyword(s) that you wish to further narrow your search by. If you intend to filter your results with more than one keyword, please leave a space between each keyword. \n\nFor example, if I wish to input the keyword *coding*, I will send 'coding'. If I wish to input the keywords *workload* and *module*, I will send 'workload module'. \n\nIf you do not wish to input any keywords, please send 'NA'.\n\nTo choose a new category, send *back*. To leave the browsing portal, send *end*."
     current = bot.send_message(chat_id = message.chat.id, text = reply, parse_mode = "Markdown")
     bot.register_next_step_handler(current, keywordInput)
     return
@@ -987,20 +1012,6 @@ def gipanel(message):
   messageReply = emoji.emojize(f"This is the menu for our general information panel. *Click on the links* below to find out various information about NUS Undergraduate Programmes, Special Undergraduate Programmes, as well as accomodation options available in NUS.\n\n /ugprogrammes Undergraduate Programmes :school: \n\n /spprogrammes Special Undergraduate Programmes :school::star: \n\n /housing Accomodation on Campus :house:")
   bot.reply_to(message, messageReply, parse_mode= 'Markdown')
 
-  
-#Defining the livechat command 
-@bot.message_handler(commands=['livechat'])
-def liveChat(message):
-  """Enter Chat Room! """
-  username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to *UniHow's Chat Room!* \n\nPlease wait while we attempt to match you with another user!"
-  current = bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode = "Markdown")
-  bot.register_next_step_handler(current, repeat_func)
-  return
-
-def repeat_func(message):
-  current = bot.send_message(message.chat.id, message.text)
-  bot.register_next_step_handler(current, repeat_func)
 
 #Defining the About command 
 @bot.message_handler(commands=['about'])

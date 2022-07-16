@@ -40,6 +40,10 @@ def startgame(message, bot):
   return
 
 def gameAnswer(message, bot):
+  if message.text.lower() == "end":
+    bot.send_message(chat_id = message.chat.id, text = "Wow! Seems like elementary level Math is too hard for you! Get good.")
+    return
+    
   try:
     user_answer = int(message.text)
     if user_answer == user_ans_dic[message.from_user.id]:
