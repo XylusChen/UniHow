@@ -4,6 +4,7 @@ import pymongo
 from pymongo import MongoClient
 from telebot import types
 from telebot.types import BotCommand
+from better_profanity import profanity
 
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
@@ -12,12 +13,18 @@ cluster = MongoClient("mongodb+srv://unihow:unihow@cluster0.ed1i7.mongodb.net/?r
 db = cluster["telegram"]
 collection = db["chatbot"] 
 
+# Detect Profanity in User Input.
+def containsProfanity(message):
+  if profanity.contains_profanity(message.text):
+    return True
+  return False
+
 counter = {"counter": 0}
 relationship_dic = {}
 
 def startchat(message):
     chat_id = message.chat.id 
-    bot.send_message(chat_id= chat_id, text= "We are currently matching you with another user.", parse_mode= "Markdown")
+    bot.send_message(chat_id= chat_id, text= "Welcome to *UniHow ChatRoom*! \n\nPlease be patient while we find someone to match you with!", parse_mode= "Markdown")
 
     check_existing = collection.count_documents({"id":chat_id})
 
@@ -30,7 +37,7 @@ def startchat(message):
     available_count = collection.count_documents(available_users) 
 
     if available_count == 0:
-        bot.send_message(chat_id= chat_id, text= "There are no users at the moment. Please wait and you will be matched eventually. To stop the search, send */stopsearch*. \n\nYou may continue using other UniHow features while waiting to be matched! Our bot will notify you when a chat partner is found!", parse_mode= "Markdown")
+        bot.send_message(chat_id= chat_id, text = "There are no other users in the chatroom at the moment. Please wait and you will be matched once a new user joins the chatroom. To stop the search, send */stopsearch*. \n\nYou may continue using other UniHow features while waiting to be matched! You will be notified once we've found a match for you!", parse_mode= "Markdown")
 
         return 
         
@@ -49,28 +56,17 @@ def startchat(message):
 
 
 def chatloop(message): 
-    if message.text == "/startchat":
-        startchat(message)
-        return
-    
-    if message.text == "/reset":
-        reset(message)
-        return
-    
-    if message.text == "/endchat":
-        endchat(message)
-        return 
 
-    if message.text == "/stopsearch":
-        stopsearch(message)
-        return 
+    if containsProfanity(message):
+        bot.send_message(chat_id = message.chat.id, text = "We have detected an inappropriate use of language in your previous message! Please behave reponsibly when using UniHow as we are trying to create a safe space for all users. Thank you for your cooperation.")
+        return
 
     try: 
         other_user = relationship_dic[message.chat.id]
         bot.send_message(chat_id= other_user, text= message.text)
 
     except KeyError: 
-        bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Type */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+        bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
 
             
 
