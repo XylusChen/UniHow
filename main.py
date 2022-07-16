@@ -13,6 +13,7 @@ from better_profanity import profanity
 import pandas as pd
 import time
 from nospam import UserTimer
+from game import user_ans_dic, get_operator, get_answer, startgame, gameAnswer
 
 #Channel ID for testing (QnA)
 testchannelQN =  -1001541561678
@@ -25,8 +26,10 @@ db = cluster["telegram"]
 collection = db["unihow"] 
 
 # Bot Token
-my_secret = os.environ["API_KEY3"]
+my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
+
+bot.register_message_handler(startgame, commands = ['bored'], pass_bot = True)
 
 # List of all valid categories for QnA feature 
 validCats = ["chs", "biz", "computing", "medicine", "dentistry", "cde", "law", "nursing", "pharmacy", "music", "UGgeneral", "ddp", "dmp", "cdp", "sep", "noc", "usp", "utcp", "rvrc", "jd", "ptp", "mp", "SPgeneral", "eusoff", "kr", "ke7", "raffles", "sheares", "temasek", "lighthouse", "pioneer", "rvrc", "capt", "rc4", "tembusu",  "pgp", "utr", "Hgeneral"]
@@ -1270,4 +1273,12 @@ def utr(message):
   """UTown Residence"""
   generateReply('utr', 'housing.csv', message)
 
-bot.infinity_polling()
+if __name__ == '__main__': 
+    try:
+      bot.polling(none_stop=True)
+      
+    except Exception as e:
+       print(e) 
+       time.sleep(15)
+
+# bot.infinity_polling()
