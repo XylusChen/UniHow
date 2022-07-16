@@ -25,7 +25,7 @@ db = cluster["telegram"]
 collection = db["unihow"] 
 
 # Bot Token
-my_secret = os.environ["MYPRECIOUS"]
+my_secret = os.environ["API_KEY3"]
 bot = telebot.TeleBot(my_secret)
 
 # List of all valid categories for QnA feature 
@@ -990,8 +990,14 @@ def gipanel(message):
 def liveChat(message):
   """Enter Chat Room! """
   username = message.from_user.first_name
-  messageReply = f"Hi {username}! Welcome to the Chat Room!"
-  bot.reply_to(message, messageReply)
+  messageReply = f"Hi {username}! Welcome to *UniHow's Chat Room!* \n\nPlease wait while we attempt to match you with another user!"
+  current = bot.send_message(chat_id = message.chat.id, text = messageReply, parse_mode = "Markdown")
+  bot.register_next_step_handler(current, repeat_func)
+  return
+
+def repeat_func(message):
+  current = bot.send_message(message.chat.id, message.text)
+  bot.register_next_step_handler(current, repeat_func)
 
 #Defining the About command 
 @bot.message_handler(commands=['about'])
@@ -1263,6 +1269,5 @@ def pgp(message):
 def utr(message):
   """UTown Residence"""
   generateReply('utr', 'housing.csv', message)
-
 
 bot.infinity_polling()
