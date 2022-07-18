@@ -14,7 +14,7 @@ import pandas as pd
 import time
 from nospam import UserTimer
 from game import startgame
-from chatbot import startchat, chatloop, endchat, stopsearch, reset
+from chatbot import livechat, chatloop, endchat, stopsearch, resetchat, reportchat
 
 #Channel ID for testing (QnA)
 testchannelQN =  -1001541561678
@@ -30,7 +30,7 @@ collection = db["unihow"]
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
-# Math Game
+# Math Game (Easter Egg)
 bot.register_message_handler(startgame, commands = ['bored'], pass_bot = True)
 
 whitelist = ['end', 'back']
@@ -49,11 +49,12 @@ def filterfunc(message):
 
 
 # Live Chat Feature
-bot.register_message_handler(startchat, commands = ['livechat'])
+bot.register_message_handler(livechat, commands = ['livechat'])
 bot.register_message_handler(chatloop, content_types = ['text'], func = filterfunc)
 bot.register_message_handler(endchat, commands = ['endchat'])
 bot.register_message_handler(stopsearch, commands = ['stopsearch'])
-bot.register_message_handler(reset, commands = ['reset'])
+bot.register_message_handler(resetchat, commands = ['resetchat'])
+bot.register_message_handler(reportchat, commands = ['reportchat'])
 
 
 # List of all valid categories for QnA feature 
@@ -122,9 +123,12 @@ bot.set_my_commands([
   BotCommand('ansid', "Answer specific Questions using it's question ID!"),
   BotCommand('browse', 'Browse and search for relevant Questions Sets using QID or Keywords!'),
   BotCommand('livechat', 'Join our Chat Room!'),
+  BotCommand('stopsearch', 'Stop searching for a chat!'),
+  BotCommand('reportchat', 'Report current user you are chatting with.'),
+  BotCommand('endchat', 'Leave the chat!'),
   BotCommand('about', 'Find out more about UniHow!'),
   BotCommand('feedback', 'Help us improve! Send us your feedback!'),
-  BotCommand('report', 'File a report! Help keep the UniHow community safe!')
+  BotCommand('reportqna', 'File a report! Help keep the UniHow community safe!')
 ])
 
 # Sends out lists of Valid Categories
@@ -889,7 +893,7 @@ def acceptFeedback(message):
 
   
 # Defining the report command.
-@bot.message_handler(commands=['report'])
+@bot.message_handler(commands=['reportqna'])
 def report(message):
   """Report"""
   username = message.from_user.first_name
