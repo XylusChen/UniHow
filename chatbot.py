@@ -2,9 +2,8 @@ import os
 import telebot
 import pymongo
 from pymongo import MongoClient
-from telebot import types
-from telebot.types import BotCommand
 from better_profanity import profanity
+import pandas as pd
 
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
@@ -14,6 +13,11 @@ cluster = MongoClient(db_secret)
 db = cluster["telegram"]
 collection_match = db["chatbot_match"]
 
+#Adding more censored words to the blacklist 
+csv_black_list = pd.read_csv('blacklist.csv')
+column_to_read_from_csv = csv_black_list.words 
+list_of_additional_words_to_blacklist = list(column_to_read_from_csv)
+profanity.add_censor_words(list_of_additional_words_to_blacklist)
 
 # Detect Profanity in User Input.
 def containsProfanity(message):
