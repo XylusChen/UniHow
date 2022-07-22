@@ -13,6 +13,7 @@ from ask import askQuestion
 from answer import ansQuestion, ansID
 from browse import browse
 from feedback_report import feedback, report
+from test import test_func
 
 #Channel ID for testing (QnA)
 testchannelQN =  -1001541561678
@@ -94,6 +95,9 @@ bot.register_message_handler(no_back, regexp = "back", func = filterfunc2)
 # Admin Commands
 bot.register_message_handler(clearDB, commands = ['clearDB'])
 bot.register_message_handler(resettimer, commands = ['resettimer'])
+
+# Test Commands
+bot.register_message_handler(test_func, commands = ['test'])
 
 #Adding more censored words to the blacklist 
 csv_black_list = pd.read_csv('blacklist.csv')
