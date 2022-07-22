@@ -1,6 +1,5 @@
 import os
 import telebot
-import pymongo
 from pymongo import MongoClient
 from better_profanity import profanity
 import pandas as pd
@@ -25,30 +24,20 @@ def containsProfanity(message):
 		return True
 	return False
 
+#This dictionary stores 2 key-value pairs for each conversation matchup. For example, user A matched with user B, then two inputs are stored.
+#This will allow us to find out the id of the other party from both ends. 
+# { user A chat id : user B chat id }, { user B chat id : user A chat id }
 relationship_dic = {}
 
 
-def check_true(chat_id, collection): 
-	count = collection.count_documents({"id" : chat_id, "status" : "true" })
+#check status of each id in the database. key can be "true", "false" or "searching"
+def check_collection(chat_id, collection, key): 
+	count = collection.count_documents({"id" : chat_id, "status" : key })
 	if count == 1: 
 		return True
 	return False
 
-
-def check_false(chat_id, collection): 
-	count = collection.count_documents({"id" : chat_id, "status" : "false" })
-	if count == 1: 
-		return True
-	return False
-
-
-def check_searching(chat_id, collection): 
-	count = collection.count_documents({"id" : chat_id, "status" : "searching" })
-	if count == 1: 
-		return True
-	return False
-
-
+#check if id is even inside the database 
 def check_existing(chat_id, collection): 
 	count = collection.count_documents({"id" : chat_id })
 	if count == 1: 
@@ -57,21 +46,24 @@ def check_existing(chat_id, collection):
 
 
 
-
+#start livechat feature 
 def livechat(message):
 	chat_id = message.chat.id 
-	if check_true(chat_id, collection_match):
+	if check_collection(chat_id, collection_match, "true"):
 
 		bot.send_message(chat_id= chat_id, text= "You are in an active chat at the moment. Please send */endchat* to exit chat and then */livechat* to search for new chat.", parse_mode= "Markdown")
 		return
 
 	bot.send_message(chat_id= chat_id, text= "Welcome to *UniHow ChatRoom*! \n\nPlease be patient while we find someone to match you with!", parse_mode= "Markdown")
 
+	#if user is not already inside database
 	if not check_existing(chat_id, collection_match): 
-		input_user = {"id": chat_id,"status": "searching"}
+		input_user = {"id": chat_id}
 		collection_match.insert_one(input_user)
 	
+	#set status to "searching" for this user
 	collection_match.update_one({"id" : chat_id}, {"$set": {"status" : "searching"}})
+	#count available users not inclusive of user searching (else count will always be at least 1)
 	available_users = {"status": "searching", "id" : {"$not" :{"$eq": chat_id}}}
 	available_count = collection_match.count_documents(available_users) 
 
@@ -82,8 +74,10 @@ def livechat(message):
 		
 
 	else: 
+		#retrieve other user id from database
 		other_user = collection_match.find_one(available_users)
 		other_user_id = other_user["id"]
+		#set status of both users to "true"
 		collection_match.update_one({"id" : chat_id}, {"$set": {"status" : "true"}})
 		collection_match.update_one({"id" : other_user_id}, {"$set": {"status" : "true"}})
 
@@ -94,12 +88,13 @@ def livechat(message):
 		bot.send_message(chat_id= chat_id, text= announcement_two, parse_mode= "Markdown")
 		bot.send_message(chat_id= other_user_id, text= announcement_one, parse_mode= "Markdown")
 		bot.send_message(chat_id= other_user_id, text= announcement_two , parse_mode= "Markdown")
+		#store 2 key-value pairs in the relationship dic 
 		relationship_dic[chat_id] = other_user_id
 		relationship_dic[other_user_id] = chat_id
 		return 
 
 
-
+#any message sent by the user that is not a command or a reply within a function (eg. answer question) will be sent to the other user currently matched via livechat (provided there is one)
 def chatloop(message): 
 
 	if containsProfanity(message):
@@ -107,32 +102,41 @@ def chatloop(message):
 		return
 
 	try: 
+		#check if this user is currently matched with another user 
 		other_user = relationship_dic[message.chat.id]
 		bot.send_message(chat_id= other_user, text= message.text)
 
 	except KeyError: 
+		#if not matched with any other user 
 		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
 
 			
-
+#admin command
 def resetchat(message): 
-	collection_match.delete_many({})
-	relationship_dic.clear()
-	bot.send_message(chat_id= message.chat.id, text= " Reset MongoDB! Relationship dictionary cleared!", parse_mode= "Markdown")
+	xylus = int(os.environ['Xylus_ID'])
+	jay = int(os.environ['Jay_ID'])
+	admin = [xylus, jay]
+	if message.chat.id in admin:
+		collection_match.delete_many({})
+		relationship_dic.clear()
+		bot.send_message(chat_id= message.chat.id, text= " Reset MongoDB chatbot! Relationship dictionary cleared!", parse_mode= "Markdown")
 
 
-
+#for user to end chat
 def endchat(message):
 	chat_id = message.chat.id 
 	
-	if not check_true(chat_id, collection_match): 
+	#user must be in active chat to end chat 
+	if not check_collection(chat_id, collection_match, "true"): 
 		bot.send_message(chat_id= chat_id, text= "You are not in an active chat at the moment, so there is no chat to end. Please send */livechat* to search for a new chat!", parse_mode= "Markdown")
 		return
-
+	#access id pairs
 	my_id = message.chat.id
 	other_user_id = relationship_dic[my_id]
+	#delete id pairs 
 	del relationship_dic[my_id]
 	del relationship_dic[other_user_id]
+	#set status of both users to false 
 	collection_match.update_one({"id" : my_id}, {"$set": {"status" : "false"}})
 	collection_match.update_one({"id" : other_user_id}, {"$set": {"status" : "false"}})
 	bot.send_message(chat_id= my_id, text = "You have left the chat. Send */livechat* to search for another chat!", parse_mode= "Markdown")
@@ -140,23 +144,25 @@ def endchat(message):
 
 
 
-
+#for user to stop searching for livechat 
 def stopsearch(message):
 	chat_id = message.chat.id 
 
-	if check_true(chat_id, collection_match):
+	#check if user is already in a live chat 
+	if check_collection(chat_id, collection_match, "true"):
 		bot.send_message(chat_id= message.chat.id, text = "You are in an active chat at the moment. Please send */endchat* to exit chat and then */livechat* to search for new chat.", parse_mode= "Markdown")
 		return
 
-	if not check_searching(chat_id, collection_match): 
+	#check if user is even searching 
+	if not check_collection(chat_id, collection_match, "searching"): 
 		bot.send_message(chat_id= message.chat.id, text = "You are not searching for chats at the moment. Please send */livechat* to search for new chat.", parse_mode= "Markdown")
 		return 
 
-
+	#update user status to false (stopped searching)
 	collection_match.update_one({"id" : message.chat.id}, {"$set": {"status" : "false"}})
 	bot.send_message(chat_id= message.chat.id, text = "Stopped searching for users. To search again, simply send */livechat*.", parse_mode= "Markdown")
 
-
+#for user to report other party 
 def reportchat(message) : 
 	try: 
 		other_user_id = relationship_dic[message.chat.id]
@@ -170,5 +176,6 @@ def reportchat(message) :
 		reportchattext = f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}"
 		bot.send_message(chat_id= -1001541900629, text = reportchattext, parse_mode= "Markdown")
 	
+	#if user is not in active chat at the moment 
 	except KeyError: 
 		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
