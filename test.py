@@ -76,8 +76,8 @@ def test_func(message):
   test_update_catQCount(test_catQCount)
 
   # Comparing values in both dictionaries
+  control = 0
   for cat in ans_catQCount:
-    control = 0
     if cat == "updated":
       continue
       
