@@ -89,7 +89,7 @@ def sendCategoryList(message):
   return
 
 def go_back(message) :
-  if message.text.lower() == "back":
+  if message.text.lower() == "back" or "Back":
     return True 
   else: 
     return False 

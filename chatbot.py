@@ -166,21 +166,21 @@ def stopsearch(message):
 	bot.send_message(chat_id= message.chat.id, text = "Stopped searching for users. To search again, simply send */livechat*.", parse_mode= "Markdown")
 
 #for user to report other party 
-def reportchat(message) : 
+def reportchat(message, bot) : 
 
 	try:
 		other_user_id = relationship_dic[message.chat.id]
 		
 		current = bot.send_message(chat_id= message.chat.id, text = "We are sorry that you had an unpleasant experience in our chatroom. Please provide a short description about why you wish to report the chat. To cancel this report, simply send *back*.", parse_mode= "Markdown")
 
-		bot.register_next_step_handler(current, acceptchatreport)
+		bot.register_next_step_handler(current, acceptchatreport, bot)
 
 	#if user is not in active chat at the moment 
 	except KeyError:
 		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
 
 
-def acceptchatreport(message):
+def acceptchatreport(message, bot):
 
 	if go_back(message):
 		back_message = "You have returned to the livechat. You may continue chatting or make use of other UniHow features!"
@@ -190,13 +190,13 @@ def acceptchatreport(message):
 	if containsProfanity(message):
 		profanity_warning = "Your description contains inappropriate language. Please try again. "
 		current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
-		bot.register_next_step_handler(current, acceptchatreport)
+		bot.register_next_step_handler(current, acceptchatreport, bot)
 		return 
 
 	if too_short(message):
 		short_warning = "Your description is too short. Please provide more information so we can look into it."
 		current = bot.send_message(chat_id= message.chat.id, text = short_warning)
-		bot.register_next_step_handler(current, acceptchatreport)
+		bot.register_next_step_handler(current, acceptchatreport, bot)
 		return 
 
 	else:
