@@ -208,6 +208,9 @@ def acceptchatreport(message):
 		else:
 			name = firstName + " " + lastName
 
-		reportchattext = "Live Chat report\n\n" + f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}"
+		reportchattext = "Live Chat report\n\n" + f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}\n\n" + f"Description: {message.text}"
 		bot.send_message(chat_id= -1001541900629, text = reportchattext, parse_mode= "Markdown")
+		success_report = "Your report has been submitted. Thank you for keeping the UniHow community safe. To end the chat, send /endchat."
+		bot.send_message(chat_id = message.chat.id, text = success_report, parse_mode= "Markdown")
+		return 
 	
