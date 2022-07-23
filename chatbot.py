@@ -3,6 +3,9 @@ import telebot
 from pymongo import MongoClient
 from better_profanity import profanity
 import pandas as pd
+from generalfunc import go_back, containsProfanity, too_short
+
+
 
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
@@ -164,7 +167,39 @@ def stopsearch(message):
 
 #for user to report other party 
 def reportchat(message) : 
-	try: 
+
+	try:
+		other_user_id = relationship_dic[message.chat.id]
+		
+		current = bot.send_message(chat_id= message.chat.id, text = "We are sorry that you had an unpleasant experience in our chatroom. Please provide a short description about why you wish to report the chat. To cancel this report, simply send *back*.", parse_mode= "Markdown")
+
+		bot.register_next_step_handler(current, acceptchatreport)
+
+	#if user is not in active chat at the moment 
+	except KeyError:
+		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+
+
+def acceptchatreport(message):
+
+	if go_back(message):
+		back_message = "You have returned to the livechat. You may continue chatting or make use of other UniHow features!"
+		bot.send_message(chat_id = message.chat.id, text = back_message, parse_mode = "Markdown")
+		return
+	
+	if containsProfanity(message):
+		profanity_warning = "Your description contains inappropriate language. Please try again. "
+		current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
+		bot.register_next_step_handler(current, acceptchatreport)
+		return 
+
+	if too_short(message):
+		short_warning = "Your description is too short. Please provide more information so we can look into it."
+		current = bot.send_message(chat_id= message.chat.id, text = short_warning)
+		bot.register_next_step_handler(current, acceptchatreport)
+		return 
+
+	else:
 		other_user_id = relationship_dic[message.chat.id]
 		lastName = message.from_user.last_name
 		firstName = message.from_user.first_name
@@ -173,9 +208,6 @@ def reportchat(message) :
 		else:
 			name = firstName + " " + lastName
 
-		reportchattext = f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}"
+		reportchattext = "Live Chat report\n\n" + f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}"
 		bot.send_message(chat_id= -1001541900629, text = reportchattext, parse_mode= "Markdown")
 	
-	#if user is not in active chat at the moment 
-	except KeyError: 
-		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
