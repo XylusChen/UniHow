@@ -88,6 +88,7 @@ bot.register_message_handler(stopsearch, commands = ['stopsearch'])
 bot.register_message_handler(resetchat, commands = ['resetchat'])
 bot.register_message_handler(reportchat, commands = ['reportchat'], pass_bot= True)
 
+
 # Backwards Navigation at Main Menu
 bot.register_message_handler(no_end, regexp = "End", func = filterfunc2)
 bot.register_message_handler(no_back, regexp = "back", func = filterfunc2)
