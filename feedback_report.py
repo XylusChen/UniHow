@@ -83,7 +83,10 @@ def acceptReportQNA(message, bot):
     qID = int(message.text)
     result = collection.find_one({"_id": qID})
     qns = pickle.loads(result["instance"])
-    reported = f"*Reported by:* {name}\n\n*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_report()}"
+    answer_set = qns.get_report()
+
+    reported = f"*Reported by:* {name}\n\n*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID}*:\n{qns.get_question()}\n\n" + "*Answer*:\n" + answer_set
+    
     bot.send_message(chat_id = -1001541900629, text = reported, parse_mode= "Markdown")
     current = bot.send_message(chat_id = message.chat.id, text = "Thank you for filing a report. Your contribution has made the UniHow community a safer, more wholesome place! \n\nPlease let us know what was problematic with your reported Question Set by sending a short description after this message. If you do not wish to provide a description, simply send *end*.", parse_mode = "Markdown")
     bot.register_next_step_handler(current, acceptReportDescription, bot, qID)
