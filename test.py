@@ -116,7 +116,7 @@ def test_func_class(message):
   # Sample question
   question_sample = "This is a sample Question for class testing."
   
-  bot.send_message(chat_id = message.chat.id, text = "Testing begin. Creating and uploading first QS instance into database.")
+  bot.send_message(chat_id = message.chat.id, text = "Class Testing begin. Creating and uploading first QS instance into database.")
 
   # Creating and uploading first QS instance.
   first_qs = Question(message.from_user.id, "test_class")
@@ -198,6 +198,92 @@ def test_func_class(message):
 
   return
   
+# Test function for correct behaviour of Question and UserTimer class
+def test_func_class_random(message):
+
+  # Control variable to track number of test rounds failed.
+  control = 0
+
+  # Sample question
+  question_sample = "This is a sample Question for class testing."
+  
+  bot.send_message(chat_id = message.chat.id, text = "Random Class Testing begin. Creating and uploading first QS instance into database.")
+
+  # Creating and uploading first QS instance.
+  first_qs = Question(message.from_user.id, "test_class")
+  first_qs.update_question(question_sample)
+  pickled_first_qs = pickle.dumps(first_qs)
+  post = {"instance": pickled_first_qs}
+  collection.insert_one(post)
+
+  random_interval = random.randint(10, 20)
+  
+  bot.send_message(chat_id = message.chat.id, text = f"First QS instance uploaded. Changing INTERVAL to {random_interval} seconds.")  
+
+  # Setting INTERVAL to random_interval seconds for test purposes.
+  UserTimer.INTERVAL = random_interval
+  no_of_rounds = (random_interval // 3) - 1
+  bot.send_message(chat_id = message.chat.id, text = f"Current test session will be executed {no_of_rounds + 1} rounds.")  
+  
+  # Creating UserTimer instance.
+  timer_object = UserTimer(message.from_user.id, time.time())
+  bot.send_message(chat_id = message.chat.id, text = "UserTimer instance created. Attempting to upload next QS instance into database in 3 seconds.") 
+
+  # Each loop represents 1 round of attempt
+  for i in range(0, no_of_rounds):
+    time.sleep(3)
+
+    # Round: Uploading QS instance after 3 seconds. Upload should be unsuccessful.
+    qs = Question(message.from_user.id, "test_class")
+    qs.update_question(question_sample)
+    pickled_qs = pickle.dumps(qs)
+    post = {"instance": pickled_qs}
+    status = timer_object.canSend()
+    timeleft = timer_object.timeTillSend()
+    if status:
+      collection.insert_one(post)
+      bot.send_message(chat_id = message.chat.id, text = f"Round {i + 1} unsuccessful. QS was uploaded into database when it should be blocked. Proceeding to next round.")
+      control += 1
+    else:
+      if i == no_of_rounds - 1:
+        time_next = 5
+        next = "final"
+      else:
+        time_next = 3
+        next = "next"
+      bot.send_message(chat_id = message.chat.id, text = f"Round {i + 1} Successful. QS instance not uploaded. {timeleft} seconds left. Attempting to upload {next} QS instance into database in {time_next} seconds.")
+
+
+  time.sleep(5)
+
+  # Final Round: Uploading last QS instance after 5 seconds. Upload should be successful.
+  last_qs = Question(message.from_user.id, "test_class")
+  last_qs.update_question(question_sample)
+  pickled_last_qs = pickle.dumps(last_qs)
+  post = {"instance": pickled_last_qs}
+  status = timer_object.canSend()
+  if status:
+    collection.insert_one(post)
+    bot.send_message(chat_id = message.chat.id, text = "Final Round Successful. Last QS instance uploaded. Executing database cleanup procedure.")  
+  else:
+    bot.send_message(chat_id = message.chat.id, text = "Final Round Unsuccessful. Last QS was uploaded into database when it should be blocked. Executing database cleanup procedure.")
+    control += 1
+
+  # Reset INTERVAL to 180 seconds (3 minutes).
+  UserTimer.INTERVAL = 180
+  bot.send_message(chat_id = message.chat.id, text = "INTERVAL reset to 180 seconds.")
+  
+  # Reset testing database collection.
+  collection.delete_many({})
+  bot.send_message(chat_id = message.from_user.id, text = f"Database reset!")
+
+  if control == 0:
+    bot.send_message(chat_id = message.from_user.id, text = f"Test Successful!")
+
+  else:
+    bot.send_message(chat_id = message.from_user.id, text = f"Test UnSuccessful! {control} rounds failed.")
+
+  return
   
   
     
