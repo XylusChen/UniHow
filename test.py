@@ -62,7 +62,7 @@ def end_chat(number, chat_id, dic):
 	
 	
 	if not check_collection(number, collection, "true"): 
-		bot.send_message(chat_id= chat_id, text= f"User {number} tried to end the chat despite being in an active chat.", parse_mode= "Markdown")
+		bot.send_message(chat_id= chat_id, text= f"User {number} tried to end the chat despite not being in an active chat.", parse_mode= "Markdown")
 		return
 
 	else :
@@ -80,18 +80,19 @@ def end_chat(number, chat_id, dic):
 
 def test_chat(message): 
 
+	collection.delete_many({})
 	relation_dic = {}
 	my_list = [user_search, end_chat]
 	#Generate a random number of users 
 	no_users = random.randint(1,5)
-	bot.send_message(message.chat.id, text = f"There are {no_users} generated." )
+	bot.send_message(message.chat.id, text = f"There are {no_users} users generated." )
 
 	for i in range(no_users):
 		collection.insert_one({"_id" : i, "status" : "false"})
 	
 
  #Decide number of events (random)
-	no_events = random.randint(1,10)
+	no_events = random.randint(10,20)
 	bot.send_message(message.chat.id, text = f"There will be {no_events} events simulated." )
 
 
@@ -99,6 +100,8 @@ def test_chat(message):
 		#pick random user 
 		user = random.randint(1,no_users)
 		random.choice(my_list)(user, message.chat.id, relation_dic)
+
+	collection.delete_many({})
 	
 	return
 
