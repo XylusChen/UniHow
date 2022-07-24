@@ -211,7 +211,7 @@ def accept_question_number(message, bot):
     # Send Question to user, along with Question ID.
   category = results["category"]
   question = results["question"]
-  message1 = "*The question you have selected is:* \n\n" + f"*Category*: {code_to_cat_dict[category]}\n\n" + f"*Question #{QID}*:\n{question}."
+  message1 = "*The question you have selected is:* \n\n" + f"*Category*: {code_to_cat_dict[category]}\n\n" + f"*Question #{QID}*:\n{question}"
   bot.send_message(chat_id = message.chat.id, text = message1, parse_mode= 'Markdown')
   message2 = "To answer this question, send us your answer. To end, just send *end*. To go back and select a different question, just send *back*." 
   current = bot.send_message(chat_id = message.chat.id, text = message2, parse_mode= "Markdown")
