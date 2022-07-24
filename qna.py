@@ -22,13 +22,6 @@ class Question:
 
     else:
       self.answer_x5collection[stringID] = answer
-    
-    #try : 
-      #test_item = self.answer_x5collection[str(answered_by)]  
-      #self.answer_x5collection[str(answered_by)] = test_item + "\n\n\n" + answer
-
-    #except KeyError :
-      #self.answer_x5collection[str(answered_by)] = answer
       
     if self.count >= 5 :
       self.status = True
