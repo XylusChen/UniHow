@@ -19,6 +19,9 @@ collection = db["testing"]
 my_secret = os.environ["MYPRECIOUS"]
 bot = telebot.TeleBot(my_secret)
 
+
+relationship_dic = {}
+
 #check status of each id in the database. key can be "true", "false" or "searching"
 def check_collection(number, collection, key): 
 	count = collection.count_documents({"_id" : number, "status" : key })
@@ -27,7 +30,7 @@ def check_collection(number, collection, key):
 	return False
 
 
-def user_search(number, reply_tester, dic):
+def user_search(number, reply_tester):
 	if check_collection(number, collection, "true"):
 
 		bot.send_message(reply_tester, text= f"User {number} tried searching for a chat despite already being in one.", parse_mode= "Markdown")
@@ -52,13 +55,13 @@ def user_search(number, reply_tester, dic):
 		bot.send_message(reply_tester, text = f"User {number} was matched with User {other_user_no}" )
 
 		#store 2 key-value pairs in the relationship dic 
-		dic[number] = other_user_no
-		dic[other_user_no] = number
+		relationship_dic[number] = other_user_no
+		relationship_dic[other_user_no] = number
 		return 
 
 		
 
-def end_chat(number, chat_id, dic): 
+def end_chat(number, chat_id): 
 	
 	
 	if not check_collection(number, collection, "true"): 
@@ -66,10 +69,10 @@ def end_chat(number, chat_id, dic):
 		return
 
 	else :
-		other_user_no = dic[number]
+		other_user_no = relationship_dic[number]
 		#delete id pairs 
-		del dic[number]
-		del dic[other_user_no]
+		del relationship_dic[number]
+		del relationship_dic[other_user_no]
 		#set status of both users to false 
 		collection.update_one({"_id" : number}, {"$set": {"status" : "false"}})
 		collection.update_one({"_id" : other_user_no}, {"$set": {"status" : "false"}})
@@ -80,8 +83,6 @@ def end_chat(number, chat_id, dic):
 
 def test_chat(message): 
 
-	collection.delete_many({})
-	relation_dic = {}
 	my_list = [user_search, end_chat]
 	#Generate a random number of users 
 	no_users = random.randint(1,5)
@@ -99,10 +100,13 @@ def test_chat(message):
 	for i in range(no_events): 
 		#pick random user 
 		user = random.randint(1,no_users)
-		random.choice(my_list)(user, message.chat.id, relation_dic)
+		random.choice(my_list)(user, message.chat.id)
 
 	collection.delete_many({})
-	
+	relationship_dic.clear()
+
+	bot.send_message(message.chat.id, text = "Test ended." )
+
 	return
 
 
