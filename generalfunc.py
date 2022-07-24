@@ -229,7 +229,7 @@ def five_posts(dic) :
     if dic["count"] >= 5 :
       dic["count"] = 0 
       return True 
-five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */report*."
+five_posts_announcement = "Dear users, thank you for using UniHow. We hope that our QnA feature has brought value to you. If you notice any offensive or inappropriate posts, you may report it and the admins will be glad to take a look. It is easy to do so. Simply go to the [UniHow bot](https://t.me/unihow_bot) and send */reportqna*."
 
 #checks if user responds with a number
 def not_number(s):
