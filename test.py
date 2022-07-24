@@ -85,10 +85,12 @@ def test_chat(message):
 
 	my_list = [user_search, end_chat]
 	#Generate a random number of users 
-	no_users = random.randint(2,8)
+	no_users = random.randint(2,10)
 	bot.send_message(message.chat.id, text = f"There are {no_users} users generated." )
 
-	for i in range(2, no_users + 1):
+	#total users = no_users
+	#create user from 1 to no_users
+	for i in range(1, no_users + 1):
 		collection.insert_one({"_id" : i, "status" : "false"})
 	
 
@@ -97,7 +99,7 @@ def test_chat(message):
 	bot.send_message(message.chat.id, text = f"There will be {no_events} events simulated." )
 
 
-	for i in range(10, no_events + 1): 
+	for i in range(no_events): 
 		#pick random user 
 		user = random.randint(1,no_users)
 		random.choice(my_list)(user, message.chat.id)
