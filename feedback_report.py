@@ -87,7 +87,7 @@ def acceptReportQNA(message, bot):
     report_dic = qns.get_report()
 
     for key in report_dic:
-      report_content += f"{key}:" + report_dic[key] + "\n\n\n"
+      report_content += f"{key}:\n" + report_dic[key] + "\n\n\n"
 
 
     reported = f"*Reported by:* {name}\n\n*Category*: {qns.get_category()}\n\n" + f"*Question* #*{qID}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n" + report_content

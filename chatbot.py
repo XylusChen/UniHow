@@ -85,7 +85,7 @@ def livechat(message):
 		collection_match.update_one({"id" : other_user_id}, {"$set": {"status" : "true"}})
 
 		announcement_one = "You have been matched! Send a message now to start chatting!"
-		announcement_two = "We hope to make this a safe environment for users to chat. Please avoid sending inapropriate messages. To report a chat, simply send */reportchat* while you are still in the chat.  The admins take the reports very seriously and will investigate accordingly."
+		announcement_two = "We hope to make this a safe environment for users to chat. Please avoid sending inapropriate messages. To report a chat, simply send */reportchat*. *Make sure to report the chat while you are still in the chat, and do not end the chat.*  The admins take the reports very seriously and will investigate accordingly."
 
 		bot.send_message(chat_id= chat_id, text= announcement_one, parse_mode= "Markdown")
 		bot.send_message(chat_id= chat_id, text= announcement_two, parse_mode= "Markdown")
@@ -99,19 +99,23 @@ def livechat(message):
 
 #any message sent by the user that is not a command or a reply within a function (eg. answer question) will be sent to the other user currently matched via livechat (provided there is one)
 def chatloop(message): 
+	#if not matched with any other user
+	if not check_collection(message.chat.id, collection_match, "true"):
+		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+		return
 
 	if containsProfanity(message):
 		bot.send_message(chat_id = message.chat.id, text = "We have detected an inappropriate use of language in your previous message! Please behave reponsibly when using UniHow as we are trying to create a safe space for all users. Thank you for your cooperation.")
 		return
 
-	try: 
-		#check if this user is currently matched with another user 
+	else:
+		#send chat to other user
 		other_user = relationship_dic[message.chat.id]
 		bot.send_message(chat_id= other_user, text= message.text)
+		return
 
-	except KeyError: 
-		#if not matched with any other user 
-		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+
+		
 
 			
 #admin command
@@ -167,17 +171,17 @@ def stopsearch(message):
 
 #for user to report other party 
 def reportchat(message, bot) : 
+	#if not matched with any other user
+	if not check_collection(message.chat.id, collection_match, "true"):
+		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+		return
 
-	try:
-		other_user_id = relationship_dic[message.chat.id]
-		
+	else: 
 		current = bot.send_message(chat_id= message.chat.id, text = "We are sorry that you had an unpleasant experience in our chatroom. Please provide a short description about why you wish to report the chat. To cancel this report, simply send *back*.", parse_mode= "Markdown")
 
 		bot.register_next_step_handler(current, acceptchatreport, bot)
 
-	#if user is not in active chat at the moment 
-	except KeyError:
-		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+
 
 
 def acceptchatreport(message, bot):

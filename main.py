@@ -85,7 +85,6 @@ bot.register_message_handler(livechat, commands = ['livechat'])
 bot.register_message_handler(chatloop, content_types = ['text'], func = filterfunc)
 bot.register_message_handler(endchat, commands = ['endchat'])
 bot.register_message_handler(stopsearch, commands = ['stopsearch'])
-bot.register_message_handler(resetchat, commands = ['resetchat'])
 bot.register_message_handler(reportchat, commands = ['reportchat'], pass_bot= True)
 
 
@@ -96,6 +95,7 @@ bot.register_message_handler(no_back, regexp = "back", func = filterfunc2)
 # Admin Commands
 bot.register_message_handler(clearDB, commands = ['clearDB'])
 bot.register_message_handler(resettimer, commands = ['resettimer'])
+bot.register_message_handler(resetchat, commands = ['clearchat'])
 
 # Test Commands
 bot.register_message_handler(test_func, commands = ['test'])
