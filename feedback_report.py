@@ -3,7 +3,6 @@ import telebot
 from pymongo import MongoClient
 import pickle
 from generalfunc import userEnd, go_back, containsProfanity, too_short, short_warning, profanity_warning
-from chatbot import collection_match, check_collection, relationship_dic
 
 
 # MongoDB database integration
@@ -128,56 +127,5 @@ def acceptReportDescription(message, bot, qID):
 
   reported = f"*From*: {name} \n\n*Reported Question*: {qID} \n\n*Description*: {message.text}"
   bot.send_message(chat_id = -1001541900629, text = reported, parse_mode= "Markdown")
-  bot.send_message(chat_id = message.chat.id, text = "Your input has been recorded! Thank you for your report submission!", parse_mode= "Markdown")
+  bot.send_message(chat_id = message.from_user.id, text = "Your input has been recorded! Thank you for your report submission!", parse_mode= "Markdown")
   return
-
-
-#for user to report other party 
-def reportchat(message, bot) : 
-	#if not matched with any other user
-	if not check_collection(message.chat.id, collection_match, "true"):
-		bot.send_message(chat_id= message.chat.id, text= "You are not matched with any user at the moment. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
-		return
-
-	else: 
-		current = bot.send_message(chat_id= message.chat.id, text = "We are sorry that you had an unpleasant experience in our chatroom. Please provide a short description about why you wish to report the chat. To cancel this report, simply send *back*.", parse_mode= "Markdown")
-
-		bot.register_next_step_handler(current, acceptchatreport, bot)
-
-
-
-
-def acceptchatreport(message, bot):
-
-	if go_back(message):
-		back_message = "You have returned to the livechat. You may continue chatting or make use of other UniHow features!"
-		bot.send_message(chat_id = message.chat.id, text = back_message, parse_mode = "Markdown")
-		return
-	
-	if containsProfanity(message):
-		profanity_warning = "Your description contains inappropriate language. Please try again. "
-		current = bot.send_message(chat_id = message.chat.id, text = profanity_warning, parse_mode = "Markdown")
-		bot.register_next_step_handler(current, acceptchatreport, bot)
-		return 
-
-	if too_short(message):
-		short_warning = "Your description is too short. Please provide more information so we can look into it."
-		current = bot.send_message(chat_id= message.chat.id, text = short_warning)
-		bot.register_next_step_handler(current, acceptchatreport, bot)
-		return 
-
-	else:
-		other_user_id = relationship_dic[message.chat.id]
-		lastName = message.from_user.last_name
-		firstName = message.from_user.first_name
-		if lastName == None:
-			name = firstName
-		else:
-			name = firstName + " " + lastName
-
-		reportchattext = "Live Chat report\n\n" + f"Reported by : {name} \n\n" + f"Suspect : {other_user_id}\n\n" + f"Description: {message.text}"
-		bot.send_message(chat_id= -1001541900629, text = reportchattext, parse_mode= "Markdown")
-		success_report = "Your report has been submitted. Thank you for keeping the UniHow community safe. To end the chat, send /endchat."
-		bot.send_message(chat_id = message.chat.id, text = success_report, parse_mode= "Markdown")
-		return 
-	
