@@ -93,7 +93,7 @@ def send_message(number, reply_tester):
 
 
 #for user to stop searching for livechat 
-def stopsearch(number, reply_tester):
+def stop_search(number, reply_tester):
 
 	#check if user is already in a live chat 
 	if check_collection(number, collection, "true"):
@@ -110,7 +110,7 @@ def stopsearch(number, reply_tester):
 	bot.send_message(reply_tester, text = f"User {number} stopped searching for a chat.", parse_mode= "Markdown")
 
 #for user to report other party 
-def reportchat(number, reply_tester) : 
+def report_chat(number, reply_tester) : 
 	#if not matched with any other user
 	if not check_collection(number, collection, "true"):
 		bot.send_message(reply_tester, text= f"User {number} tried to report the chat despite not being in an active chat.", parse_mode= "Markdown")
@@ -127,7 +127,7 @@ def reportchat(number, reply_tester) :
 
 def test_chat(message): 
 	#A list of random functions that can be generated, one per event
-	my_list = [user_search, end_chat, send_message]
+	my_list = [user_search, end_chat, send_message, stop_search, report_chat]
 	#Generate a random number of users, from 2 users to 10 users
 	no_users = random.randint(2,10)
 	bot.send_message(message.chat.id, text = f"There are {no_users} users generated." )
