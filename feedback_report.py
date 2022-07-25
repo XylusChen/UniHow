@@ -3,7 +3,7 @@ import telebot
 from pymongo import MongoClient
 import pickle
 from generalfunc import userEnd, go_back, containsProfanity, too_short, short_warning, profanity_warning
-from chatbot import collection_match, check_collection, relationship_dic
+from chatbot import check_collection, relationship_dic
 
 
 # MongoDB database integration
@@ -11,6 +11,7 @@ db_secret = os.environ['MongoDB_Token']
 cluster = MongoClient(db_secret)
 db = cluster["telegram"]
 collection = db["unihow"] 
+collection_match = db["chatbot_match"]
 
 # Bot Token
 my_secret = os.environ["MYPRECIOUS"]
