@@ -127,4 +127,5 @@ def acceptReportDescription(message, bot, qID):
 
   reported = f"*From*: {name} \n\n*Reported Question*: {qID} \n\n*Description*: {message.text}"
   bot.send_message(chat_id = -1001541900629, text = reported, parse_mode= "Markdown")
+  bot.send_message(chat_id = message.from_user.id, text = "Your input has been recorded! Thank you for your report submission!", parse_mode= "Markdown")
   return

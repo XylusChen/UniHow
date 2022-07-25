@@ -61,11 +61,11 @@ def user_search(number, reply_tester):
 
 		
 
-def end_chat(number, chat_id): 
+def end_chat(number, reply_tester): 
 	
 	
 	if not check_collection(number, collection, "true"): 
-		bot.send_message(chat_id= chat_id, text= f"User {number} tried to end the chat despite not being in an active chat.", parse_mode= "Markdown")
+		bot.send_message(reply_tester, text= f"User {number} tried to end the chat despite not being in an active chat.", parse_mode= "Markdown")
 		return
 
 	else :
@@ -76,15 +76,59 @@ def end_chat(number, chat_id):
 		#set status of both users to false 
 		collection.update_one({"_id" : number}, {"$set": {"status" : "false"}})
 		collection.update_one({"_id" : other_user_no}, {"$set": {"status" : "false"}})
-		bot.send_message(chat_id= chat_id, text= f"User {number} ended the chat with User {other_user_no}", parse_mode= "Markdown")
+		bot.send_message(reply_tester, text= f"User {number} ended the chat with User {other_user_no}", parse_mode= "Markdown")
+
+
+
+
+def send_message(number, reply_tester):
+	if not check_collection(number, collection, "true"):
+		bot.send_message(reply_tester, text= f"User {number} tried sending a chat message despite not being in a chat.", parse_mode= "Markdown")
+		return
+
+	else:
+		other_user_no = relationship_dic[number]
+		bot.send_message(reply_tester, text= f"User {number} sent a message to User {other_user_no}.", parse_mode= "Markdown")
+		return
+
+
+#for user to stop searching for livechat 
+def stopsearch(number, reply_tester):
+
+	#check if user is already in a live chat 
+	if check_collection(number, collection, "true"):
+		bot.send_message(reply_tester, text = f"User {number} tried stopping search despite being in an active chat.", parse_mode= "Markdown")
+		return
+
+	#check if user is even searching 
+	if not check_collection(number, collection, "searching"): 
+		bot.send_message(reply_tester, text = f"User {number} is not searching but tried to end search.", parse_mode= "Markdown")
+		return 
+
+	#update user status to false (stopped searching)
+	collection.update_one({"_id" :number}, {"$set": {"status" : "false"}})
+	bot.send_message(reply_tester, text = f"User {number} stopped searching for a chat.", parse_mode= "Markdown")
+
+#for user to report other party 
+def reportchat(number, reply_tester) : 
+	#if not matched with any other user
+	if not check_collection(number, collection, "true"):
+		bot.send_message(reply_tester, text= f"User {number} tried to report the chat despite not being in an active chat.", parse_mode= "Markdown")
+		return
+
+	else: 
+		other_user_no = relationship_dic[number]
+		bot.send_message(reply_tester, text = f"User {number} reported User {other_user_no}. ", parse_mode= "Markdown")
+
+
 
 
 
 
 def test_chat(message): 
-
-	my_list = [user_search, end_chat]
-	#Generate a random number of users 
+	#A list of random functions that can be generated, one per event
+	my_list = [user_search, end_chat, send_message]
+	#Generate a random number of users, from 2 users to 10 users
 	no_users = random.randint(2,10)
 	bot.send_message(message.chat.id, text = f"There are {no_users} users generated." )
 
@@ -94,14 +138,15 @@ def test_chat(message):
 		collection.insert_one({"_id" : i, "status" : "false"})
 	
 
- #Decide number of events (random)
+ #Decide number of events (random), 10-20 events
 	no_events = random.randint(10,20)
 	bot.send_message(message.chat.id, text = f"There will be {no_events} events simulated." )
 
-
+	#simulate number of events
 	for i in range(no_events): 
 		#pick random user 
 		user = random.randint(1,no_users)
+		#pick random event to generate
 		random.choice(my_list)(user, message.chat.id)
 
 	collection.delete_many({})
