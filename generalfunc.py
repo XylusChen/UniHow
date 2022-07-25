@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from better_profanity import profanity
 from qna import Question
 import pandas as pd
-from chatbot import relationship_dic
+from chatbot import collection_match, relationship_dic
 
 
 # MongoDB database integration
@@ -15,7 +15,6 @@ db_secret = os.environ['MongoDB_Token']
 cluster = MongoClient(db_secret)
 db = cluster["telegram"]
 collection = db["unihow"] 
-collection_match = db["chatbot_match"]
 
 # Bot Token
 my_secret = os.environ["MYPRECIOUS"]
