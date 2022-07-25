@@ -16,8 +16,9 @@ from feedback_report import feedback, report
 from test import test_func, test_func_class, test_func_class_random, test_chat
 
 #Channel ID for testing (QnA)
-testchannelQN =  -1001541561678
-testchannelAns = -1001797479601
+
+testchannelQN =  os.environ['question_channel']
+testchannelAns = os.environ['answer_channel']
 
 # MongoDB database integration
 db_secret = os.environ['MongoDB_Token']
@@ -154,7 +155,7 @@ def start(message):
 
   bot.send_message(chat_id = message.chat.id, text = "We urge all users to behave responsibly on UniHow, especially when using our QnA Forum and LiveChat features. It takes a communal effort to keep this platform *safe* and *professional* so that everyone can use it with a peace of mind. If you notice any signs of misconduct or inappropriacy, please let us know by using our /report function, more detailed instructions will follow.", parse_mode = "Markdown")
 
-  bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to our [UniHow QnA Question Channel](https://t.me/UniHowQnA) to stay updated on the latest, most pressing questions that fellow peers are asking about NUS! Also subscribe to our [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA) where you can find answers and responses to these questions!", parse_mode= 'Markdown')
+  bot.send_message(chat_id= message.chat.id, text = "Make sure to subscribe to our [UniHow Question Channel](https://t.me/UniHowQuestion) to stay updated on the latest, most pressing questions that fellow peers are asking about NUS! Also subscribe to our [UniHow Answer Channel](https://t.me/UniHowAnswer) where you can find answers and responses to these questions!", parse_mode= 'Markdown')
 
 update_catQCount()
 

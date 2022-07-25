@@ -7,8 +7,8 @@ from generalfunc import code_to_cat_dict, createCatMarkup, sendCategoryList, go_
 from answer import accept_question_number
 
 #Channel ID for testing (QnA)
-testchannelQN =  -1001541561678
-testchannelAns = -1001797479601
+testchannelQN =  os.environ['question_channel']
+testchannelAns = os.environ['answer_channel']
 
 # MongoDB database integration
 db_secret = os.environ['MongoDB_Token']

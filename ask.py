@@ -8,8 +8,8 @@ from nospam import UserTimer
 from generalfunc import code_to_cat_dict, createCatMarkup, sendCategoryList, go_back, userEnd, too_short, validCategory, fetch_question, containsProfanity, go_back_message, short_warning, profanity_warning, category_dic, findLargestID, timeTrack, catQCount, update_catQCount
 
 #Channel ID for testing (QnA)
-testchannelQN =  -1001541561678
-testchannelAns = -1001797479601
+testchannelQN =  os.environ['question_channel']
+testchannelAns = os.environ['answer_channel']
 
 # MongoDB database integration
 db_secret = os.environ['MongoDB_Token']
@@ -152,5 +152,5 @@ def acceptQuestion(message, bot):
     
     broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the [UniHow Bot](https://t.me/unihow_bot) and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
     bot.send_message(chat_id = testchannelQN, text = broadcast_message, parse_mode= 'Markdown')
-    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [Question Broadcast Channel](https://t.me/UniHowQuestionChannel) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [Answer Broadcast Channel](https://t.me/testlink12345testlink). Be sure to look out for it!", parse_mode= 'Markdown')
+    bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [UniHow Question Channel](https://t.me/UniHowQuestion) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [UniHow Answer Channel](https://t.me/UniHowAnswer). Be sure to look out for it!", parse_mode= 'Markdown')
 

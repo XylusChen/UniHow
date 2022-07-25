@@ -7,8 +7,8 @@ from generalfunc import code_to_cat_dict, createCatMarkup, sendCategoryList, go_
 
 
 #Channel ID for testing (QnA)
-testchannelQN =  -1001541561678
-testchannelAns = -1001797479601
+testchannelQN =  os.environ["question_channel"]
+testchannelAns = os.environ['answer_channel']
 
 # MongoDB database integration
 db_secret = os.environ['MongoDB_Token']
@@ -158,7 +158,7 @@ def acceptAnswerCategory(message, bot):
   if qns.get_answercount() >= 5 : 
     catQCount[qns.get_category()] -= 1
 
-  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Answer Channel](https://t.me/UniHowAnswer)."), parse_mode= 'Markdown')
 
   # Post completed QS Set to Broadcast Channel
   broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{qID_int}*:\n{qns.get_question()}\n\n" + f"*Answer*:\n{qns.get_answer(message.from_user.id)}"
@@ -258,7 +258,7 @@ def acceptAnswerID(message, bot):
   if qns.get_answercount() >= 5 : 
     catQCount[qns.get_category()] -= 1
 
-  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Qna Broadcast Channel](https://t.me/UniHowQnA)."), parse_mode= 'Markdown')
+  bot.send_message(chat_id = message.chat.id, text = emoji.emojize("Your Answer has been successfully recorded! We would like to thank you for your contribution on behalf of the UniHow community! :smiling_face_with_smiling_eyes:. To view your answer, check out [UniHow Answer Channel](https://t.me/UniHowAnswer)."), parse_mode= 'Markdown')
 
   
   # Post completed QS Set to Broadcast Channel
