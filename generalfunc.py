@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from better_profanity import profanity
 from qna import Question
 import pandas as pd
+from chatbot import collection_match, relationship_dic
 
 
 # MongoDB database integration
@@ -192,7 +193,15 @@ broadcast_dic= {"count" : 0 }
 xylus = int(os.environ['Xylus_ID'])
 jay = int(os.environ['Jay_ID'])
 admin = [xylus, jay]
-@bot.message_handler(commands=['clearDB'])
+
+#admin command
+def resetchat(message): 
+	if message.chat.id in admin:
+		collection_match.delete_many({})
+		relationship_dic.clear()
+		bot.send_message(chat_id= message.chat.id, text= " Reset MongoDB chatbot! Relationship dictionary cleared!", parse_mode= "Markdown")
+
+
 def clearDB(message):
   """Clear Database"""
   if message.from_user.id not in admin:

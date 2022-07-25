@@ -6,13 +6,13 @@ from better_profanity import profanity
 import pandas as pd
 import time
 from game import startgame
-from chatbot import livechat, chatloop, endchat, stopsearch, resetchat, reportchat
+from chatbot import livechat, chatloop, endchat, stopsearch
 from gipanel import gipanel, about, ugprogrammes, chs, biz, computing, dentistry, cde, law, medicine, nursing, pharmacy, music, spprogrammes, ddp, dmp, cdp, sp, sep, noc, usp, utcp, rvrc, jd, ptp, mp, housing, halls, eusoff, kr, ke7, raffles, sheares, temasek, houses, lighthouse, pioneer, rc, capt, rc4, tembusu, residences, pgp, utr
-from generalfunc import filterfunc, filterfunc2, no_back, no_end, clearDB, resettimer, update_catQCount
+from generalfunc import filterfunc, filterfunc2, no_back, no_end, clearDB, resettimer, update_catQCount,resetchat
 from ask import askQuestion
 from answer import ansQuestion, ansID
 from browse import browse
-from feedback_report import feedback, report
+from feedback_report import feedback, report, reportchat
 from test import test_func, test_func_class, test_func_class_random, test_chat
 
 #Channel ID for testing (QnA)
@@ -85,7 +85,6 @@ bot.register_message_handler(livechat, commands = ['livechat'])
 bot.register_message_handler(chatloop, content_types = ['text'], func = filterfunc)
 bot.register_message_handler(endchat, commands = ['endchat'])
 bot.register_message_handler(stopsearch, commands = ['stopsearch'])
-bot.register_message_handler(reportchat, commands = ['reportchat'], pass_bot= True)
 
 
 # Backwards Navigation at Main Menu
@@ -140,8 +139,9 @@ bot.register_message_handler(browse, commands = ['browse'], pass_bot = True)
 # Feedback
 bot.register_message_handler(feedback, commands = ['feedback'], pass_bot = True)
 
-# Report QnA Forum
+# Report Commands
 bot.register_message_handler(report, commands = ['reportqna'], pass_bot = True)
+bot.register_message_handler(reportchat, commands = ['reportchat'], pass_bot= True)
 
     
 #Define start command in main menu 
