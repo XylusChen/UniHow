@@ -167,6 +167,10 @@ def stopsearch(message):
 
 #for user to report other party 
 def reportchat(message, bot) : 
+	my_id = message.chat.id
+	if not check_existing(my_id, collection_match):
+		bot.send_message(chat_id= message.chat.id, text= "You have not searched for any chat so far, so there is no one to report. Send */livechat* to start searching for a user to chat with!", parse_mode= "Markdown")
+		return
 
 	my_info = {"id" : message.chat.id}
 	retrieved = collection_match.find_one(my_info)
