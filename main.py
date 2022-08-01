@@ -15,7 +15,7 @@ from browse import browse
 from feedback_report import feedback, report
 from test import test_func, test_func_class, test_func_class_random, test_chat
 
-#Channel ID for testing (QnA)
+#Channel ID for testing Qna
 
 testchannelQN =  os.environ['question_channel']
 testchannelAns = os.environ['answer_channel']
