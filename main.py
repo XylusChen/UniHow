@@ -13,6 +13,7 @@ from ask import askQuestion
 from answer import ansQuestion, ansID
 from browse import browse
 from feedback_report import feedback, report
+from edit import edit
 from test import test_func, test_func_class, test_func_class_random, test_chat
 
 #Channel ID for testing Qna
@@ -118,6 +119,7 @@ bot.set_my_commands([
   BotCommand('unanswered', 'View unanswered questions in our QnA Forum!'),
   BotCommand('ansid', "Answer specific Questions using it's question ID!"),
   BotCommand('browse', 'Browse and search for relevant Questions Sets using QID or Keywords!'),
+  BotCommand('edit', 'Edit your contributed Questions and Answers!'),
   BotCommand('livechat', 'Join our Chat Room!'),
   BotCommand('stopsearch', 'Stop searching for a chat!'),
   BotCommand('reportchat', 'Report current user you are chatting with.'),
@@ -137,6 +139,9 @@ bot.register_message_handler(ansID, commands = ['ansid'], pass_bot = True)
 
 # QnA Forum: Browsing Questions
 bot.register_message_handler(browse, commands = ['browse'], pass_bot = True)
+
+# QnA Forum: Edit 
+bot.register_message_handler(edit, commands = ['edit'], pass_bot = True)
 
 # Feedback
 bot.register_message_handler(feedback, commands = ['feedback'], pass_bot = True)

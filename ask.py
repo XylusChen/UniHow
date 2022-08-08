@@ -151,6 +151,7 @@ def acceptQuestion(message, bot):
     catQCount[qns.get_category()] += 1
     
     broadcast_message = f"*Category*: {code_to_cat_dict[qns.get_category()]}\n\n" + f"*Question* #*{Question.id_counter - 1}*:\n{qns.get_question()}\n\n" + f"To answer this question, go to the [UniHow Bot](https://t.me/unihow_bot) and send \n */ansid*. Following that, simply send *{Question.id_counter - 1}*."
+    
     bot.send_message(chat_id = testchannelQN, text = broadcast_message, parse_mode= 'Markdown')
     bot.send_message(chat_id = message.chat.id, text = f"Thank you for your input, you question has been recorded on our [UniHow Question Channel](https://t.me/UniHowQuestion) for all to see! Your question number is *#{Question.id_counter - 1}*. Answers to your question will appear on our [UniHow Answer Channel](https://t.me/UniHowAnswer). Be sure to look out for it!", parse_mode= 'Markdown')
 
